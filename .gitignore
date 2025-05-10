@@ -1,0 +1,75 @@
+# Python
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+*.egg-info/
+*.egg
+
+# Django
+*.log
+*.pot
+*.sqlite3
+local_settings.py
+settings.py
+migrations/
+*.db
+
+# Virtualenv
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+venv
+
+# Static and media files
+staticfiles/
+media/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Cache and temporary files
+*.cache
+*.bak
+*.swp
+*.swo
+*~
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+.covercache
+coverage.xml
+*.cover
+*.py,cover
+
+# Testing
+.pytest_cache/
+.tox/
+.nox/
+*.mochawesome-report
+
+# Package manager
+pip-log.txt
+Pipfile.lock
+
+# Other
+*.pid
+*.seed
+*.pid.lock

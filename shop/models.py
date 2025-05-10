@@ -52,6 +52,7 @@ class Promo(models.Model):
     class Meta:
         verbose_name = 'Акция'
         verbose_name_plural = 'Акции'
+        ordering = ['-start_date']
 
 class ProductVariation(models.Model):
     id = models.AutoField(primary_key=True, verbose_name='ID')
@@ -106,6 +107,7 @@ class Product(models.Model):
     class Meta:
         verbose_name = 'Продукт'
         verbose_name_plural = 'Продукты'
+        ordering = ['name']
 
 class Order(models.Model):
     STATUS_CHOICES = (
@@ -151,6 +153,7 @@ class Order(models.Model):
     class Meta:
         verbose_name = 'Заказ'
         verbose_name_plural = 'Заказы'
+        ordering = ['-order_date']
 
 class OrderItem(models.Model):
     id = models.AutoField(primary_key=True, verbose_name='ID')

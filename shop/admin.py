@@ -37,6 +37,7 @@ class CategoryAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at']
     date_hierarchy = 'created_at'
     list_display_links = ['name']
+    raw_id_fields = ['parent']
 
     @admin.display(description='Родительская категория')
     def parent_name(self, obj):
