@@ -2,16 +2,26 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import User, Category, Promo, Product, ProductVariation, Order, OrderItem
 
+
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 1
     raw_id_fields = ['variation']
-    readonly_fields = ['created_at']
+    readonly_fields = ['created_at', 'price']
+    fields = ['variation', 'quantity', 'price', 'created_at']
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj: 
+            return self.readonly_fields + ['variation', 'quantity']
+        return self.readonly_fields
+
 
 class ProductVariationInline(admin.TabularInline):
     model = ProductVariation
     extra = 1
-    readonly_fields = ['created_at']
+    readonly_fields = ['created_at', 'stock']
+    fields = ['size', 'color', 'available_stock', 'reserved_quantity', 'sold_quantity', 'stock', 'created_at']
+
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
@@ -29,6 +39,7 @@ class UserAdmin(BaseUserAdmin):
         ('Даты', {'fields': ('last_login', 'date_joined', 'created_at')}),
     )
 
+
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ['name', 'parent_name', 'created_at']
@@ -43,6 +54,7 @@ class CategoryAdmin(admin.ModelAdmin):
     def parent_name(self, obj):
         return obj.parent.name if obj.parent else '-'
 
+
 @admin.register(Promo)
 class PromoAdmin(admin.ModelAdmin):
     list_display = ['title', 'discount_percentage', 'start_date', 'end_date', 'is_active', 'created_at']
@@ -51,6 +63,12 @@ class PromoAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at']
     date_hierarchy = 'start_date'
     list_display_links = ['title']
+    fieldsets = (
+        (None, {'fields': ('title', 'description')}),
+        ('Детали акции', {'fields': ('discount_percentage', 'start_date', 'end_date', 'is_active')}),
+        ('Мета', {'fields': ('created_at',)}),
+    )
+
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
@@ -62,52 +80,72 @@ class ProductAdmin(admin.ModelAdmin):
     list_display_links = ['name']
     filter_horizontal = ['categories']
     inlines = [ProductVariationInline]
-    raw_id_fields = ['categories']
 
     @admin.display(description='Категории')
     def get_categories(self, obj):
         return ", ".join([category.name for category in obj.categories.all()])
 
-    get_categories.short_description = 'Категории'
 
 @admin.register(ProductVariation)
 class ProductVariationAdmin(admin.ModelAdmin):
-    list_display = ['product_name', 'size', 'color', 'stock', 'created_at']
+    list_display = ['product_name', 'size', 'color', 'available_stock', 'reserved_quantity', 'sold_quantity', 'get_stock', 'created_at']
     list_filter = ['product', 'size', 'color']
     search_fields = ['product__name', 'size', 'color']
-    readonly_fields = ['created_at']
+    readonly_fields = ['created_at', 'stock']
     date_hierarchy = 'created_at'
     list_display_links = ['product_name']
     raw_id_fields = ['product']
+    fields = ['product', 'size', 'color', 'available_stock', 'reserved_quantity', 'sold_quantity', 'stock', 'created_at']
 
     @admin.display(description='Продукт')
     def product_name(self, obj):
         return obj.product.name
-    
+
+    @admin.display(description='Доступный запас')
+    def get_stock(self, obj):
+        return obj.stock
+
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ['order_number', 'user_username', 'status', 'total_price', 'discount_amount', 'order_date']
+    list_display = ['order_number', 'user_username', 'status', 'get_original_price', 'get_total_price', 'discount_amount', 'order_date']
     list_filter = ['status', 'order_date', 'user']
     search_fields = ['order_number', 'user__username']
-    readonly_fields = ['order_number', 'order_date']
+    readonly_fields = ['order_number', 'order_date', 'original_price', 'total_price', 'discount_amount']
     date_hierarchy = 'order_date'
     list_display_links = ['order_number']
     inlines = [OrderItemInline]
     raw_id_fields = ['user']
+    fields = ['user', 'status', 'order_date', 'original_price', 'total_price', 'discount_amount', 'order_number']
 
     @admin.display(description='Пользователь')
     def user_username(self, obj):
         return obj.user.username
-    
+
+    @admin.display(description='Цена без скидки')
+    def get_original_price(self, obj):
+        return obj.original_price
+
+    @admin.display(description='Итоговая цена')
+    def get_total_price(self, obj):
+        return obj.total_price
+
+
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):
     list_display = ['order_number', 'variation_display', 'price', 'quantity', 'created_at']
     list_filter = ['order', 'variation']
     search_fields = ['order__order_number', 'variation__product__name', 'variation__size', 'variation__color']
-    readonly_fields = ['created_at']
+    readonly_fields = ['created_at', 'price']
     date_hierarchy = 'created_at'
     list_display_links = ['order_number']
     raw_id_fields = ['order', 'variation']
+    fields = ['order', 'variation', 'price', 'quantity', 'created_at']
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return self.readonly_fields + ['order', 'variation', 'quantity']
+        return self.readonly_fields
 
     @admin.display(description='Номер заказа')
     def order_number(self, obj):
