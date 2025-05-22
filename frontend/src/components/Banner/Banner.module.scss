@@ -1,0 +1,81 @@
+@use "../../scss/variables" as *;
+
+.banner {
+    &__img {
+        max-width: 1280px;
+        height: 257px;
+        width: 100%;
+        margin-bottom: 10px;
+        border-radius: 15px;
+    }
+
+    &__placeholder {
+        font-size: 2.4rem;
+        margin-bottom: 10px;
+        text-align: center;
+    }
+
+    &__content {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 80px;
+    }
+
+    &__contentLeft {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    &__title {
+        font-size: 3.6rem;
+        font-weight: 600;
+    }
+
+    &__description {
+        font-size: 2rem;
+        margin-bottom: 10px;
+    }
+
+    &__link {
+        padding: 8px 22px;
+        font-size: 1.6rem;
+        font-weight: 600;
+        background-color: $primary;
+        color: $white;
+        border: 1px solid $primary;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+
+        &:hover,
+        &:focus {
+            color: $primary;
+            background-color: $white;
+        }
+    }
+
+    &__arrows {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        gap: 10px;
+    }
+
+    &__customArrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        transition: all 0.3s ease;
+
+        &:hover {
+            transform: scale(1.1);
+        }
+    }
+
+    &__slideCounter {
+        font-size: 1.4rem;
+    }
+}

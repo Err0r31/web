@@ -1,0 +1,70 @@
+@use "../../scss/variables" as *;
+
+.footer {
+    background-color: $primary;
+
+    &__wrapper {
+        display: flex;
+        padding: 15px 0;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 80px;
+    }
+
+    &__logo {
+        color: $white;
+        font-size: 4.8rem;
+        font-family: $ff-title;
+        transition: all 0.3s ease;
+
+        &:hover,
+        &:focus {
+            transform: scale(1.05);
+        }
+    }
+
+    &__section {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    &__title {
+        font-size: 1.8rem;
+        font-weight: 400;
+        color: $white;
+    }
+
+    &__list {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    &__link {
+        color: $white;
+        position: relative;
+
+        &::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -2px;
+            width: 0;
+            height: 1px;
+            background-color: $white;
+            transition: width 0.3s ease-in-out;
+        }
+
+        &:hover::after {
+            width: 100%;
+        }
+    }
+
+    &__itemSocials {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+}

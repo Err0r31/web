@@ -1,0 +1,13 @@
+.outfitList {
+    &__title {
+        font-size: 3.6rem;
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+
+    &__wrapper {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+}

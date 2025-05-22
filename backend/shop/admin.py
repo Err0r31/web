@@ -1,6 +1,7 @@
 from django.contrib import admin
+from django.utils.html import format_html
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Category, Promo, Product, ProductVariation, Order, OrderItem
+from .models import User, Category, Banner, Product, ProductVariation, Order, OrderItem, Outfit
 
 
 class OrderItemInline(admin.TabularInline):
@@ -11,7 +12,7 @@ class OrderItemInline(admin.TabularInline):
     fields = ['variation', 'quantity', 'price', 'created_at']
 
     def get_readonly_fields(self, request, obj=None):
-        if obj: 
+        if obj:
             return self.readonly_fields + ['variation', 'quantity']
         return self.readonly_fields
 
@@ -21,6 +22,14 @@ class ProductVariationInline(admin.TabularInline):
     extra = 1
     readonly_fields = ['created_at', 'stock']
     fields = ['size', 'color', 'available_stock', 'reserved_quantity', 'sold_quantity', 'stock', 'created_at']
+
+
+class OutfitProductInline(admin.TabularInline):
+    model = Outfit.products.through
+    extra = 1
+    raw_id_fields = ['product']
+    verbose_name = 'Продукт в образе'
+    verbose_name_plural = 'Продукты в образе'
 
 
 @admin.register(User)
@@ -55,31 +64,57 @@ class CategoryAdmin(admin.ModelAdmin):
         return obj.parent.name if obj.parent else '-'
 
 
-@admin.register(Promo)
-class PromoAdmin(admin.ModelAdmin):
-    list_display = ['title', 'discount_percentage', 'start_date', 'end_date', 'is_active', 'created_at']
-    list_filter = ['is_active', 'start_date', 'end_date']
+@admin.register(Banner)
+class BannerAdmin(admin.ModelAdmin):
+    list_display = ['title', 'is_active', 'created_at', 'image_preview', 'link']
+    list_filter = ['is_active']
     search_fields = ['title', 'description']
-    readonly_fields = ['created_at']
-    date_hierarchy = 'start_date'
+    readonly_fields = ['created_at', 'image_preview']
     list_display_links = ['title']
     fieldsets = (
-        (None, {'fields': ('title', 'description')}),
-        ('Детали акции', {'fields': ('discount_percentage', 'start_date', 'end_date', 'is_active')}),
-        ('Мета', {'fields': ('created_at',)}),
+        (None, {
+            'fields': ('title', 'description', 'link')
+        }),
+        ('Изображение', {
+            'fields': ('image',)
+        }),
+        ('Статус', {
+            'fields': ('is_active',)
+        }),
+        ('Мета', {
+            'fields': ('created_at',)
+        }),
     )
+
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" style="max-height: 50px;"/>', obj.image.url)
+        return "Нет изображения"
+    image_preview.short_description = 'Превью изображения'
 
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ['name', 'brand', 'price', 'get_categories', 'is_active', 'discount_percentage', 'created_at']
-    list_filter = ['is_active', 'categories', 'brand', 'created_at']
+    list_display = ['name', 'brand', 'price', 'total_price', 'get_categories', 'is_active', 'is_recommended', 'discount_percentage', 'created_at']
+    list_filter = ['is_active', 'is_recommended', 'categories', 'brand', 'created_at']
     search_fields = ['name', 'description', 'brand', 'categories__name']
-    readonly_fields = ['created_at']
+    readonly_fields = ['created_at', 'total_price']
     date_hierarchy = 'created_at'
     list_display_links = ['name']
     filter_horizontal = ['categories']
     inlines = [ProductVariationInline]
+    fieldsets = (
+        (None, {'fields': ('name', 'description', 'brand', 'price', 'categories')}),
+        ('Изображения', {'fields': ('image',)}),
+        ('Скидки и статус', {'fields': ('discount_percentage', 'is_active', 'is_recommended')}),
+        ('Мета', {'fields': ('created_at', 'total_price')}),
+    )
+
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" style="max-height: 50px;" />', obj.image.url)
+        return "-"
+    image_preview.short_description = "Превью"
 
     @admin.display(description='Категории')
     def get_categories(self, obj):
@@ -116,7 +151,7 @@ class OrderAdmin(admin.ModelAdmin):
     list_display_links = ['order_number']
     inlines = [OrderItemInline]
     raw_id_fields = ['user']
-    fields = ['user', 'status', 'order_date', 'original_price', 'total_price', 'discount_amount', 'order_number']
+    fields = ['user', 'status', 'order_number', 'order_date', 'original_price', 'total_price', 'discount_amount']
 
     @admin.display(description='Пользователь')
     def user_username(self, obj):
@@ -133,24 +168,25 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):
-    list_display = ['order_number', 'variation_display', 'price', 'quantity', 'created_at']
-    list_filter = ['order', 'variation']
-    search_fields = ['order__order_number', 'variation__product__name', 'variation__size', 'variation__color']
-    readonly_fields = ['created_at', 'price']
+    list_display = ['order', 'variation', 'price', 'quantity', 'created_at']
+    list_filter = ['order', 'variation__product']
+    search_fields = ['order__order_number', 'variation__product__name']
+    readonly_fields = ['created_at']
     date_hierarchy = 'created_at'
-    list_display_links = ['order_number']
     raw_id_fields = ['order', 'variation']
-    fields = ['order', 'variation', 'price', 'quantity', 'created_at']
 
-    def get_readonly_fields(self, request, obj=None):
-        if obj:
-            return self.readonly_fields + ['order', 'variation', 'quantity']
-        return self.readonly_fields
 
-    @admin.display(description='Номер заказа')
-    def order_number(self, obj):
-        return obj.order.order_number
+@admin.register(Outfit)
+class OutfitAdmin(admin.ModelAdmin):
+    list_display = ['name', 'get_products', 'total_price', 'created_at']
+    list_filter = ['products', 'created_at']
+    search_fields = ['name', 'products__name']
+    readonly_fields = ['created_at', 'total_price']
+    date_hierarchy = 'created_at'
+    inlines = [OutfitProductInline]
+    filter_horizontal = ['products']
+    list_display_links = ['name']
 
-    @admin.display(description='Вариация')
-    def variation_display(self, obj):
-        return str(obj.variation)
+    def get_products(self, obj):
+        return ", ".join([product.name for product in obj.products.all()])
+    get_products.short_description = 'Продукты'

@@ -3,7 +3,6 @@ from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 import uuid
 from django.core.exceptions import ValidationError
-from decimal import Decimal
 
 class User(AbstractUser):
     id = models.AutoField(primary_key=True, verbose_name='ID')
@@ -18,6 +17,7 @@ class User(AbstractUser):
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
 
+
 class Category(models.Model):
     id = models.AutoField(primary_key=True, verbose_name='ID')
     name = models.CharField(max_length=100, verbose_name='Название')
@@ -31,6 +31,11 @@ class Category(models.Model):
     )
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
 
+    def get_path(self):
+        if self.parent:
+            return f"{self.parent.get_path()}/{self.name}"
+        return self.name
+
     def __str__(self):
         return self.name
 
@@ -39,63 +44,88 @@ class Category(models.Model):
         verbose_name_plural = 'Категории'
         unique_together = ('name', 'parent')
 
-class Promo(models.Model):
+
+class Banner(models.Model):
     id = models.AutoField(primary_key=True, verbose_name='ID')
-    title = models.CharField(max_length=200, verbose_name='Название', blank=False)
+    title = models.CharField(max_length=200, verbose_name='Название')
     description = models.TextField(verbose_name='Описание', blank=True)
-    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, verbose_name='Процент скидки', blank=True, null=True)
-    start_date = models.DateTimeField(verbose_name='Дата начала', blank=True, null=True)
-    end_date = models.DateTimeField(verbose_name='Дата окончания', blank=True, null=True)
     is_active = models.BooleanField(default=False, verbose_name='Активна')
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
-
-    def clean(self):
-        if self.start_date and self.end_date and self.start_date >= self.end_date:
-            raise ValidationError('Дата начала должна быть раньше даты окончания.')
-        if self.discount_percentage is not None and (self.discount_percentage < 0 or self.discount_percentage > 100):
-            raise ValidationError('Процент скидки должен быть от 0 до 100.')
-
-    def is_currently_active(self):
-        now = timezone.now()
-        return self.is_active and self.start_date and self.end_date and self.start_date <= now <= self.end_date
+    image = models.ImageField(upload_to='banner/', blank=True, null=True, verbose_name='Изображение')
+    link = models.URLField(max_length=200, blank=True, null=True, verbose_name='Ссылка для перехода')
 
     def __str__(self):
         return self.title
 
     class Meta:
-        verbose_name = 'Акция'
-        verbose_name_plural = 'Акции'
-        ordering = ['-start_date']
+        verbose_name = 'Баннер'
+        verbose_name_plural = 'Баннеры'
+        ordering = ['-created_at']
+
+
+class Product(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name='ID')
+    name = models.CharField(max_length=200, verbose_name='Название', blank=True)
+    description = models.TextField(verbose_name='Описание', blank=True)
+    brand = models.CharField(max_length=100, verbose_name='Бренд')
+    price = models.IntegerField(verbose_name='Цена (в рублях)')
+    discount_percentage = models.PositiveIntegerField(default=0, verbose_name='Процент скидки')  # 0–100
+    categories = models.ManyToManyField(Category, related_name='products', verbose_name='Категории')
+    image = models.ImageField(upload_to='products/', blank=True, null=True, verbose_name='Изображение')
+    is_active = models.BooleanField(default=False, verbose_name='Активен')
+    created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
+    is_recommended = models.BooleanField(default=False, verbose_name='Рекомендован')
+    total_price = models.IntegerField(default=0, verbose_name='Итоговая цена', editable=False)
+
+    def clean(self):
+        if self.discount_percentage < 0 or self.discount_percentage > 100:
+            raise ValidationError('Процент скидки должен быть от 0 до 100.')
+
+    def get_final_price(self):
+        discount_amount = (self.price * self.discount_percentage) // 100
+        return self.price - discount_amount
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        self.total_price = self.get_final_price()
+        super().save(*args, **kwargs)
+        for outfit in self.outfits.all():
+            outfit.save()
+
+    def __str__(self):
+        return self.name or f"Продукт {self.id}"
+
+    class Meta:
+        verbose_name = 'Продукт'
+        verbose_name_plural = 'Продукты'
+        ordering = ['name']
+
 
 class ProductVariation(models.Model):
     id = models.AutoField(primary_key=True, verbose_name='ID')
-    product = models.ForeignKey(
-        'Product',
-        on_delete=models.CASCADE,
-        related_name='variations',
-        verbose_name='Продукт'
-    )
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variations', verbose_name='Продукт')
     size = models.CharField(max_length=10, verbose_name='Размер')
     color = models.CharField(max_length=50, verbose_name='Цвет')
     available_stock = models.PositiveIntegerField(default=0, verbose_name='Количество на складе', blank=True)
     reserved_quantity = models.PositiveIntegerField(default=0, verbose_name='Зарезервировано', blank=True)
     sold_quantity = models.PositiveIntegerField(default=0, verbose_name='Продано', blank=True)
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
+    images = models.ImageField(upload_to='product_variations/', blank=True, null=True, verbose_name='Изображение вариации')
+    stock = models.PositiveIntegerField(default=0, editable=False, verbose_name='Доступный запас')
 
-    @property
-    def stock(self):
-        """Доступный запас для продажи."""
-        return self.available_stock - self.reserved_quantity
+    def save(self, *args, **kwargs):
+        self.stock = self.available_stock - self.reserved_quantity
+        super().save(*args, **kwargs)
 
     def is_available(self, quantity=1):
         return self.stock >= quantity
-    
+
     def reserve_stock(self, quantity):
         if not self.is_available(quantity):
             raise ValidationError(f'Недостаточно запаса для {self}.')
         self.reserved_quantity += quantity
         self.save()
-    
+
     def confirm_sale(self, quantity):
         if self.reserved_quantity < quantity:
             raise ValidationError(f'Нельзя подтвердить больше, чем зарезервировано для {self}.')
@@ -117,50 +147,30 @@ class ProductVariation(models.Model):
         verbose_name_plural = 'Вариации продуктов'
         unique_together = ('product', 'size', 'color')
 
-class Product(models.Model):
+
+class Outfit(models.Model):
     id = models.AutoField(primary_key=True, verbose_name='ID')
     name = models.CharField(max_length=200, verbose_name='Название', blank=True)
-    description = models.TextField(verbose_name='Описание', blank=True)
-    brand = models.CharField(max_length=100, verbose_name='Бренд', blank=False)
-    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Цена', blank=False)
-    categories = models.ManyToManyField(
-        Category,
-        related_name='products',
-        verbose_name='Категории'
-    )
-    image = models.ImageField(
-        upload_to='products/',
-        blank=True,
-        null=True,
-        verbose_name='Изображение'
-    )
-    is_active = models.BooleanField(default=False, verbose_name='Активен')
+    products = models.ManyToManyField(Product, related_name='outfits', verbose_name='Продукты')
+    image = models.ImageField(upload_to='outfit/', blank=True, null=True, verbose_name='Изображение')
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
-    discount_percentage = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        default=0.00,
-        verbose_name='Процент скидки',
-        blank=True,
-        null=True
-    )
+    total_price = models.IntegerField(default=0, verbose_name='Итоговая цена', editable=False)
 
-    def clean(self):
-        if self.discount_percentage is not None and (self.discount_percentage < 0 or self.discount_percentage > 100):
-            raise ValidationError('Процент скидки должен быть от 0 до 100.')
+    def calculate_total_price(self):
+        return sum(product.total_price for product in self.products.all())
 
-    def get_final_price(self):
-        """Возвращает цену с учетом скидки."""
-        discount = self.discount_percentage or 0
-        return self.price * (1 - discount / 100)
+    def save(self, *args, **kwargs):
+        self.total_price = self.calculate_total_price()
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.name or f"Продукт {self.id}"
+        return self.name or f"Образ {self.id}"
 
     class Meta:
-        verbose_name = 'Продукт'
-        verbose_name_plural = 'Продукты'
+        verbose_name = 'Образ'
+        verbose_name_plural = 'Образы'
         ordering = ['name']
+
 
 class Order(models.Model):
     STATUS_CHOICES = (
@@ -172,52 +182,22 @@ class Order(models.Model):
     )
 
     id = models.AutoField(primary_key=True, verbose_name='ID')
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='orders',
-        verbose_name='Пользователь'
-    )
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default='pending',
-        verbose_name='Статус'
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders', verbose_name='Пользователь')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name='Статус')
     order_date = models.DateTimeField(default=timezone.now, verbose_name='Дата заказа')
-    discount_amount = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=0.00,
-        blank=False,
-        verbose_name='Сумма скидки'
-    )
-    order_number = models.UUIDField(
-        default=uuid.uuid4,
-        editable=False,
-        unique=True,
-        verbose_name='Номер заказа'
-    )
+    discount_amount = models.IntegerField(default=0, verbose_name='Сумма скидки', editable=False)
+    original_price = models.IntegerField(default=0, verbose_name='Цена без скидки', editable=False)
+    total_price = models.IntegerField(default=0, verbose_name='Итоговая цена', editable=False)
+    order_number = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, verbose_name='Номер заказа')
 
-    @property
-    def original_price(self):
-        """Цена без скидки на основе элементов заказа."""
-        return sum(item.price * item.quantity for item in self.items.all()) or Decimal('0.00')
-
-    @property
-    def total_price(self):
-        """Итоговая цена с учетом скидок."""
-        return sum(item.variation.product.get_final_price() * item.quantity for item in self.items.all()) or Decimal('0.00')
-
-    @property
-    def calculated_discount_amount(self):
-        """Рассчитанная сумма скидки."""
-        return self.original_price - self.total_price
+    def calculate_prices(self):
+        self.original_price = sum(item.price * item.quantity for item in self.items.all())
+        self.total_price = sum(item.variation.product.total_price * item.quantity for item in self.items.all())
+        self.discount_amount = self.original_price - self.total_price
 
     def save(self, *args, **kwargs):
+        self.calculate_prices()
         super().save(*args, **kwargs)
-        self.discount_amount = self.calculated_discount_amount
-        super().save(update_fields=['discount_amount'])
 
     def confirm_delivery(self):
         if self.status != 'shipped':
@@ -243,20 +223,12 @@ class Order(models.Model):
         verbose_name_plural = 'Заказы'
         ordering = ['-order_date']
 
+
 class OrderItem(models.Model):
     id = models.AutoField(primary_key=True, verbose_name='ID')
-    order = models.ForeignKey(
-        Order,
-        on_delete=models.CASCADE,
-        related_name='items',
-        verbose_name='Заказ'
-    )
-    variation = models.ForeignKey(
-        ProductVariation,
-        on_delete=models.CASCADE,
-        verbose_name='Вариация продукта'
-    )
-    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Цена')
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items', verbose_name='Заказ')
+    variation = models.ForeignKey(ProductVariation, on_delete=models.CASCADE, verbose_name='Вариация продукта')
+    price = models.IntegerField(verbose_name='Цена за единицу')
     quantity = models.PositiveIntegerField(verbose_name='Количество')
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
 
