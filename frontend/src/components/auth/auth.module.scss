@@ -1,0 +1,108 @@
+@use "../../scss/variables" as *;
+
+.authForm {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 500px;
+    width: 100%;
+    margin: 0 auto;
+
+    &__titleWrapper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+    }
+
+    &__title {
+        font-size: 2.8rem;
+        color: $primary;
+    }
+
+    &__button {
+        padding: 10px 24px;
+        font-size: 1.6rem;
+        font-weight: 600;
+        background-color: $primary;
+        color: $white;
+        border: 1px solid $primary;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+
+        &:hover,
+        &:focus {
+            color: $primary;
+            background-color: $white;
+        }
+    }
+
+    &__inputs {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    &__inputWrapper {
+        position: relative;
+    }
+
+    &__input {
+        width: 100%;
+        padding: 12px 12px 12px 44px;
+        border: 1px solid $primary;
+        border-radius: 8px;
+        font-size: 1.6rem;
+        outline: none;
+        transition: all 0.3s ease;
+
+        &--error {
+            border-color: $error;
+        }
+    }
+
+    &__inputIcon {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        color: $primary;
+        cursor: pointer;
+        width: 20px;
+        height: 20px;
+        pointer-events: none;
+    }
+
+    &__toggleIcon {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        width: 20px;
+        height: 20px;
+        color: $primary;
+        cursor: pointer;
+    }
+
+    &__error {
+        font-size: 1.2rem;
+        color: $error;
+        margin-top: 4px;
+    }
+
+    &__submit {
+        padding: 12px;
+        font-size: 1.6rem;
+        font-weight: 600;
+        background-color: $primary;
+        color: $white;
+        border: none;
+        border-radius: 8px;
+        border: 1px solid $primary;
+        transition: all 0.3s ease;
+
+        &:hover {
+            color: $primary;
+            background-color: $white;
+        }
+    }
+
+}

@@ -1,5 +1,21 @@
 from rest_framework import serializers
-from .models import Banner, Product, Outfit
+from .models import Banner, Product, Outfit, User
+
+class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'password', 'address', 'phone_number')
+
+    def create(self, validated_data):
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data.get('email', ''),
+            password=validated_data['password'],
+        )
+        return user
+
 
 class BannerSerializer(serializers.ModelSerializer):
     class Meta:
@@ -8,6 +24,7 @@ class BannerSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'image': {'required': False}
         }
+
 
 class ProductSerializer(serializers.ModelSerializer):
     last_category_name = serializers.SerializerMethodField()

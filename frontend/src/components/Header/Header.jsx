@@ -1,8 +1,26 @@
 import styles from "./Header.module.scss";
 import { Link } from "react-router-dom";
-import { FiHeart, FiUser, FiShoppingCart } from "react-icons/fi";
+import { FiHeart, FiUser, FiShoppingCart, FiLogOut } from "react-icons/fi";
+import { AuthContext } from "../../context/AuthContext.jsx";
+import { useToast } from "../shared/Toast/ToastProvider.jsx";
+import { useContext } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Header() {
+  const { isAuthenticated, handleLogout } = useContext(AuthContext);
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+
+  const handleLogoutClick = async () => {
+    try {
+      await handleLogout();
+      showToast("Выход выполнен успешно!", "success");
+      navigate("/");
+    } catch (err) {
+      showToast(err.message || "Ошибка при выходе", "error");
+    }
+  };
+
   return (
     <header className={styles.header}>
       <div className={styles.header__top}>
@@ -24,10 +42,20 @@ export default function Header() {
                 <FiHeart className={styles.header__icon} />
                 Избранное
               </Link>
-              <Link to="/" className={styles.header__link}>
-                <FiUser className={styles.header__icon} />
-                Войти
-              </Link>
+              {isAuthenticated ? (
+                <button
+                  onClick={handleLogoutClick}
+                  className={styles.header__link}
+                >
+                  <FiLogOut className={styles.header__icon} />
+                  Выйти
+                </button>
+              ) : (
+                <Link to="/register" className={styles.header__link}>
+                  <FiUser className={styles.header__icon} />
+                  Войти
+                </Link>
+              )}
               <Link to="/" className={styles.header__link}>
                 <FiShoppingCart className={styles.header__icon} />
                 Корзина
