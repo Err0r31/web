@@ -3,6 +3,16 @@ from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 import uuid
 from django.core.exceptions import ValidationError
+from django.urls import reverse
+from django.utils.text import slugify
+
+class ActiveOrderManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(status__in=['pending', 'processing', 'shipped'])
+
+class ActiveProductManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_active=True)
 
 class User(AbstractUser):
     id = models.AutoField(primary_key=True, verbose_name='ID')
@@ -17,10 +27,10 @@ class User(AbstractUser):
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
 
-
 class Category(models.Model):
     id = models.AutoField(primary_key=True, verbose_name='ID')
     name = models.CharField(max_length=100, verbose_name='Название')
+    slug = models.SlugField(max_length=100, unique=True, verbose_name='Слаг', blank=True)
     parent = models.ForeignKey(
         'self',
         on_delete=models.CASCADE,
@@ -36,6 +46,11 @@ class Category(models.Model):
             return f"{self.parent.get_path()}/{self.name}"
         return self.name
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.name
 
@@ -43,7 +58,6 @@ class Category(models.Model):
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
         unique_together = ('name', 'parent')
-
 
 class Banner(models.Model):
     id = models.AutoField(primary_key=True, verbose_name='ID')
@@ -62,6 +76,18 @@ class Banner(models.Model):
         verbose_name_plural = 'Баннеры'
         ordering = ['-created_at']
 
+class ProductCategory(models.Model):
+    product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='product_categories')
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='category_products')
+    added_at = models.DateTimeField(default=timezone.now, verbose_name='Дата добавления')
+
+    class Meta:
+        verbose_name = 'Связь продукт-категория'
+        verbose_name_plural = 'Связи продукт-категория'
+        unique_together = ('product', 'category')
+
+    def __str__(self):
+        return f"{self.product.name} в {self.category.name}"
 
 class Product(models.Model):
     id = models.AutoField(primary_key=True, verbose_name='ID')
@@ -69,13 +95,16 @@ class Product(models.Model):
     description = models.TextField(verbose_name='Описание', blank=True)
     brand = models.CharField(max_length=100, verbose_name='Бренд')
     price = models.IntegerField(verbose_name='Цена (в рублях)')
-    discount_percentage = models.PositiveIntegerField(default=0, verbose_name='Процент скидки')  # 0–100
-    categories = models.ManyToManyField(Category, related_name='products', verbose_name='Категории')
+    discount_percentage = models.PositiveIntegerField(default=0, verbose_name='Процент скидки')
+    categories = models.ManyToManyField(Category, through='ProductCategory', related_name='products', verbose_name='Категории')
     image = models.ImageField(upload_to='products/', blank=True, null=True, verbose_name='Изображение')
     is_active = models.BooleanField(default=False, verbose_name='Активен')
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
     is_recommended = models.BooleanField(default=False, verbose_name='Рекомендован')
     total_price = models.IntegerField(default=0, verbose_name='Итоговая цена', editable=False)
+
+    objects = models.Manager()
+    active_objects = ActiveProductManager()
 
     def clean(self):
         if self.discount_percentage < 0 or self.discount_percentage > 100:
@@ -89,8 +118,9 @@ class Product(models.Model):
         self.clean()
         self.total_price = self.get_final_price()
         super().save(*args, **kwargs)
-        for outfit in self.outfits.all():
-            outfit.save()
+
+    def get_absolute_url(self):
+        return reverse('product-detail', kwargs={'pk': self.pk})
 
     def __str__(self):
         return self.name or f"Продукт {self.id}"
@@ -99,7 +129,6 @@ class Product(models.Model):
         verbose_name = 'Продукт'
         verbose_name_plural = 'Продукты'
         ordering = ['name']
-
 
 class ProductVariation(models.Model):
     id = models.AutoField(primary_key=True, verbose_name='ID')
@@ -114,11 +143,13 @@ class ProductVariation(models.Model):
     stock = models.PositiveIntegerField(default=0, editable=False, verbose_name='Доступный запас')
 
     def save(self, *args, **kwargs):
+        self.available_stock = self.available_stock or 0
+        self.reserved_quantity = self.reserved_quantity or 0
         self.stock = self.available_stock - self.reserved_quantity
         super().save(*args, **kwargs)
 
     def is_available(self, quantity=1):
-        return self.stock >= quantity
+        return (self.stock or 0) >= quantity
 
     def reserve_stock(self, quantity):
         if not self.is_available(quantity):
@@ -147,31 +178,6 @@ class ProductVariation(models.Model):
         verbose_name_plural = 'Вариации продуктов'
         unique_together = ('product', 'size', 'color')
 
-
-class Outfit(models.Model):
-    id = models.AutoField(primary_key=True, verbose_name='ID')
-    name = models.CharField(max_length=200, verbose_name='Название', blank=True)
-    products = models.ManyToManyField(Product, related_name='outfits', verbose_name='Продукты')
-    image = models.ImageField(upload_to='outfit/', blank=True, null=True, verbose_name='Изображение')
-    created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
-    total_price = models.IntegerField(default=0, verbose_name='Итоговая цена', editable=False)
-
-    def calculate_total_price(self):
-        return sum(product.total_price for product in self.products.all())
-
-    def save(self, *args, **kwargs):
-        self.total_price = self.calculate_total_price()
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return self.name or f"Образ {self.id}"
-
-    class Meta:
-        verbose_name = 'Образ'
-        verbose_name_plural = 'Образы'
-        ordering = ['name']
-
-
 class Order(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Ожидает'),
@@ -189,6 +195,10 @@ class Order(models.Model):
     original_price = models.IntegerField(default=0, verbose_name='Цена без скидки', editable=False)
     total_price = models.IntegerField(default=0, verbose_name='Итоговая цена', editable=False)
     order_number = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, verbose_name='Номер заказа')
+    invoice = models.FileField(upload_to='invoices/', blank=True, null=True, verbose_name='Счет (PDF)')
+
+    objects = models.Manager()
+    active_orders = ActiveOrderManager()
 
     def calculate_prices(self):
         self.original_price = sum(item.price * item.quantity for item in self.items.all())
@@ -196,6 +206,8 @@ class Order(models.Model):
         self.discount_amount = self.original_price - self.total_price
 
     def save(self, *args, **kwargs):
+        if not self.pk:
+            super().save(*args, **kwargs)
         self.calculate_prices()
         super().save(*args, **kwargs)
 
@@ -223,7 +235,6 @@ class Order(models.Model):
         verbose_name_plural = 'Заказы'
         ordering = ['-order_date']
 
-
 class OrderItem(models.Model):
     id = models.AutoField(primary_key=True, verbose_name='ID')
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items', verbose_name='Заказ')
@@ -239,6 +250,8 @@ class OrderItem(models.Model):
     def save(self, *args, **kwargs):
         self.clean()
         if not self.pk:
+            if not self.variation or not self.variation.product:
+                raise ValidationError("Вариация или продукт не указаны.")
             self.variation.reserve_stock(self.quantity)
             self.price = self.variation.product.price
         super().save(*args, **kwargs)
@@ -256,3 +269,20 @@ class OrderItem(models.Model):
     class Meta:
         verbose_name = 'Элемент заказа'
         verbose_name_plural = 'Элементы заказа'
+
+class Review(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
+    rating = models.PositiveIntegerField(default=5)
+    comment = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Отзыв от {self.user.username} для {self.product.name}"
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ['product', 'user']
+        verbose_name = 'Отзыв'
+        verbose_name_plural = 'Отзывы'
