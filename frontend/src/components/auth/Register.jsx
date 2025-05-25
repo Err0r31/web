@@ -1,11 +1,10 @@
-import React, { useState } from "react";
-import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
+import React from "react";
 import * as yup from "yup";
-import { register as registerUser } from "../../utils/auth.js";
-import { FiUser, FiEye, FiEyeOff } from "react-icons/fi";
+import { FiUser } from "react-icons/fi";
 import { TfiEmail } from "react-icons/tfi";
-import { useToast } from "../shared/Toast/ToastProvider.jsx";
+import { useToast } from "../shared/Toast/ToastProvider";
+import { authRegister } from "../../utils/auth";
+import AuthForm from "./AuthForm";
 import styles from "./auth.module.scss";
 
 const schema = yup.object().shape({
@@ -27,101 +26,49 @@ const schema = yup.object().shape({
 
 export default function Register({ switchFunc }) {
   const { showToast } = useToast();
-  const [showPassword, setShowPassword] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm({ resolver: yupResolver(schema) });
+  const fields = [
+    {
+      name: "username",
+      type: "text",
+      placeholder: "Имя пользователя",
+      icon: <FiUser className={styles.authForm__inputIcon} />,
+    },
+    {
+      name: "email",
+      type: "email",
+      placeholder: "Email",
+      icon: <TfiEmail className={styles.authForm__inputIcon} />,
+    },
+    { name: "password", type: "password", placeholder: "Пароль", icon: null },
+  ];
 
   const onSubmit = async (data) => {
     try {
-      await registerUser(data.username, data.email, data.password);
+      await authRegister(
+        data.username,
+        data.email,
+        data.password,
+        data.address,
+        data.phone_number
+      );
       showToast("Регистрация успешна!", "success");
       switchFunc();
     } catch (err) {
       showToast(err.message || "Ошибка регистрации", "error");
+      throw err;
     }
   };
 
   return (
-    <div className="container">
-      <form className={styles.authForm} onSubmit={handleSubmit(onSubmit)}>
-        <div className={styles.authForm__titleWrapper}>
-          <h1 className={styles.authForm__title}>Регистрация</h1>
-          <button className={styles.authForm__button} onClick={switchFunc}>
-            Вход
-          </button>
-        </div>
-
-        <div className={styles.authForm__inputs}>
-          <div className={styles.authForm__inputWrapper}>
-            <FiUser className={styles.authForm__inputIcon} />
-            <input
-              type="text"
-              placeholder="Имя пользователя"
-              autoComplete="off"
-              className={`${styles.authForm__input} ${
-                errors.username ? styles["authForm__input--error"] : ""
-              }`}
-              {...register("username")}
-            />
-            {errors.username && (
-              <p className={styles.authForm__error}>
-                {errors.username.message}
-              </p>
-            )}
-          </div>
-
-          <div className={styles.authForm__inputWrapper}>
-            <TfiEmail className={styles.authForm__inputIcon} />
-            <input
-              type="email"
-              placeholder="Email"
-              autoComplete="off"
-              className={`${styles.authForm__input} ${
-                errors.email ? styles["authForm__input--error"] : ""
-              }`}
-              {...register("email")}
-            />
-            {errors.email && (
-              <p className={styles.authForm__error}>{errors.email.message}</p>
-            )}
-          </div>
-
-          <div className={styles.authForm__inputWrapper}>
-            {showPassword ? (
-              <FiEyeOff
-                className={styles.authForm__toggleIcon}
-                onClick={() => setShowPassword(false)}
-              />
-            ) : (
-              <FiEye
-                className={styles.authForm__toggleIcon}
-                onClick={() => setShowPassword(true)}
-              />
-            )}
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Пароль"
-              autoComplete="off"
-              className={`${styles.authForm__input} ${
-                errors.password ? styles["authForm__input--error"] : ""
-              }`}
-              {...register("password")}
-            />
-            {errors.password && (
-              <p className={styles.authForm__error}>
-                {errors.password.message}
-              </p>
-            )}
-          </div>
-        </div>
-        <button type="submit" className={styles.authForm__submit}>
-          Зарегистрироваться
-        </button>
-      </form>
-    </div>
+    <AuthForm
+      schema={schema}
+      onSubmit={onSubmit}
+      fields={fields}
+      title="Регистрация"
+      buttonText="Зарегистрироваться"
+      switchFunc={switchFunc}
+      switchText="Вход"
+    />
   );
 }

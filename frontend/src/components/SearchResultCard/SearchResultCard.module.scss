@@ -1,0 +1,39 @@
+@use "../../scss/variables" as *;
+
+.searchResultCard {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    color: $dark-charcoal;
+    border-bottom: 1px solid $bright-gray;
+    transition: all 0.3s ease;
+
+    &:hover {
+        background: $cultured;
+    }
+
+    &__image {
+        width: 50px;
+        height: 50px;
+        margin-right: 12px;
+        border-radius: 4px;
+    }
+
+    &__info {
+        flex: 1;
+    }
+
+    &__name {
+        font-size: 1.4rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 200px;
+    }
+
+    &__price {
+        font-size: 1.4rem;
+        color: $taupe-gray;
+        margin: 4px 0 0;
+    }
+}

@@ -1,31 +1,54 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import Login from "../../components/auth/Login";
 import Register from "../../components/auth/Register";
+import styles from "./AuthPage.module.scss";
 import Header from "../../components/Header/Header";
 import Footer from "../../components/Footer/Footer";
-import Login from "../../components/auth/Login";
-import { useNavigate } from "react-router-dom";
 
 export default function AuthPage() {
-  const [isRegistration, serIsRegistration] = useState(true);
+  const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
 
-  function handleSwitch() {
-    serIsRegistration(!isRegistration);
-  }
+  const switchForm = () => {
+    setIsLogin(!isLogin);
+  };
 
-  function loginSuccess() {
+  const handleLoginSuccess = () => {
     navigate("/");
-  }
+  };
 
   return (
     <>
       <Header />
-      <main className="content">
-        {isRegistration ? (
-          <Register switchFunc={handleSwitch} />
-        ) : (
-          <Login switchFunc={handleSwitch} onLoginSuccess={loginSuccess} />
-        )}
+      <main className={`content ${styles.authPage}`}>
+        <AnimatePresence mode="wait">
+          {isLogin ? (
+            <motion.div
+              key="login"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -50 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Login
+                onLoginSuccess={handleLoginSuccess}
+                switchFunc={switchForm}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="register"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -50 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Register switchFunc={switchForm} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
       <Footer />
     </>

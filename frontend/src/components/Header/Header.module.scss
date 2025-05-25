@@ -143,6 +143,12 @@
         }
     }
 
+    &__searchWrapper {
+        position: relative;
+        max-width: 300px;
+        width: 100%;
+    }
+
     &__search {
         background: none;
         border: 2px solid $primary;
@@ -150,5 +156,40 @@
         padding: 8px 10px;
         max-width: 300px;
         width: 100%;
+    }
+
+    &__searchLoading {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    &__searchResults {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: $white;
+        border: 1px solid $gray;
+        border-radius: 4px;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 10;
+        box-shadow: 0 2px 8px rgba($color: #000000, $alpha: 0.1);
+    }
+
+    &__searchError {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: $white;
+        border: 1px solid $error;
+        border-radius: 4px;
+        padding: 8px;
+        color: $error;
+        font-size: 1.2rem;
+        z-index: 10;
     }
 }

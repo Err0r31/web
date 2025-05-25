@@ -18,6 +18,7 @@
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   animation: fadeInOut 3s ease forwards;
   min-width: 200px;
+  cursor: pointer;
 }
 
 .toast.success {
@@ -26,6 +27,14 @@
 
 .toast.error {
   background-color: $error;
+}
+
+.toast.info {
+  background-color: $info;
+}
+
+.toast.warning {
+  background-color: $warning;
 }
 
 @keyframes fadeInOut {

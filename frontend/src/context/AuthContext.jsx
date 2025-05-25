@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from "react";
-import { getAccessToken, logout } from "../utils/auth.js";
+import { getAccessToken, authLogout } from "../utils/auth.js";
 
 export const AuthContext = createContext();
 
@@ -7,7 +7,8 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(!!getAccessToken());
 
   useEffect(() => {
-    setIsAuthenticated(!!getAccessToken());
+    const token = getAccessToken();
+    setIsAuthenticated(!!token);
   }, []);
 
   const handleLogin = () => {
@@ -16,10 +17,11 @@ export const AuthProvider = ({ children }) => {
 
   const handleLogout = async () => {
     try {
-      await logout();
+      await authLogout();
       setIsAuthenticated(false);
+      console.log('Выход выполнен успешно');
     } catch (err) {
-      console.error("Ошибка при выходе:", err);
+      console.error("Ошибка выхода:", err.message);
     }
   };
 

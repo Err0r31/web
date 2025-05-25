@@ -1,15 +1,59 @@
+import React, { useState, useEffect, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { FiHeart, FiUser, FiLogOut, FiShoppingCart } from "react-icons/fi";
+import { AuthContext } from "../../context/AuthContext";
+import { useToast } from "../shared/Toast/ToastProvider";
+import { debounce } from "lodash";
+import { searchProducts } from "../../utils/api";
+import { PuffLoader } from "react-spinners";
+import { motion, AnimatePresence } from "framer-motion";
+import SearchResultCard from "../SearchResultCard/SearchResultCard";
 import styles from "./Header.module.scss";
-import { Link } from "react-router-dom";
-import { FiHeart, FiUser, FiShoppingCart, FiLogOut } from "react-icons/fi";
-import { AuthContext } from "../../context/AuthContext.jsx";
-import { useToast } from "../shared/Toast/ToastProvider.jsx";
-import { useContext } from "react";
-import { useNavigate } from "react-router-dom";
 
 export default function Header() {
-  const { isAuthenticated, handleLogout } = useContext(AuthContext);
+  const { isAuthenticated, handleLogout } = React.useContext(AuthContext);
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchError, setSearchError] = useState(null);
+  const searchRef = useRef(null);
+
+  const debouncedSearch = debounce(async (query) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      setSearchError(null);
+      return;
+    }
+    try {
+      setIsLoading(true);
+      const results = await searchProducts(query);
+      setSearchResults(results);
+      setSearchError(null);
+    } catch (err) {
+      setSearchError(err.message || "Ошибка поиска");
+      showToast(err.message || "Ошибка поиска", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  }, 500);
+
+  useEffect(() => {
+    debouncedSearch(searchQuery);
+    return () => debouncedSearch.cancel(); // Очистка при размонтировании
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setSearchQuery("");
+        setSearchResults([]);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleLogoutClick = async () => {
     try {
@@ -90,13 +134,44 @@ export default function Header() {
                 Скидки %
               </Link>
             </nav>
-            <input
-              type="text"
-              name=""
-              id=""
-              className={styles.header__search}
-              placeholder="Поиск..."
-            />
+            <div className={styles.header__searchWrapper} ref={searchRef}>
+              <input
+                type="text"
+                className={styles.header__search}
+                placeholder="Поиск..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {isLoading && (
+                <div className={styles.header__searchLoading}>
+                  <PuffLoader color="#3E549D" size={24} />
+                </div>
+              )}
+              <AnimatePresence>
+                {searchResults.length > 0 && (
+                  <motion.div
+                    className={styles.header__searchResults}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {searchResults.map((product) => (
+                      <SearchResultCard
+                        key={product.id}
+                        id={product.id}
+                        image={product.image}
+                        name={product.name}
+                        price={product.total_price}
+                      />
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              {searchError && (
+                <div className={styles.header__searchError}>{searchError}</div>
+              )}
+            </div>
           </div>
         </div>
       </div>

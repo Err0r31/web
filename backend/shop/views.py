@@ -1,32 +1,31 @@
-from rest_framework import generics, views, permissions, status
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework import viewsets, generics, status, views
+from rest_framework.filters import SearchFilter
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
-from django.http import HttpResponseRedirect
-from django.shortcuts import render, get_object_or_404, redirect
-from django.db.models import Count, Sum, Avg
-from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
-from rest_framework import permissions
 from rest_framework.pagination import PageNumberPagination
-from .models import Category, Product, Banner, User, Order, ProductVariation, Review
+from django.shortcuts import get_object_or_404, render
+from django.db.models import Count, Sum, Avg
+from .models import Banner, Product, User, Order, Category, Review
 from .serializers import (
-    BannerSerializer, ProductSerializer, RegisterSerializer,
-    OrderSerializer, ReviewSerializer
+    BannerSerializer, ProductSerializer, OrderSerializer,
+    RegisterSerializer, ReviewSerializer
 )
 
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [AllowAny]
 
 
 class LoginView(TokenObtainPairView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [AllowAny]
 
 
-class LogoutView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+class LogoutView(views.APIView):
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         try:
@@ -38,91 +37,82 @@ class LogoutView(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
-class BannerListView(generics.ListAPIView):
-    queryset = Banner.objects.all()
+class BannerViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Banner.objects.filter(is_active=True)
     serializer_class = BannerSerializer
-
-    def get_queryset(self):
-        return Banner.objects.filter(is_active=True)
+    pagination_class = None
 
 
 class RandomRecommendedProductsView(views.APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
         recommended_products = Product.objects.filter(is_recommended=True).exclude(is_active=False).order_by('?')[:6]
         serializer = ProductSerializer(recommended_products, many=True, context={'request': request})
         return Response(serializer.data)
 
-class UserOrdersView(generics.ListAPIView):
+class UserOrdersViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = OrderSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return self.request.user.orders.filter(status='delivered').select_related('user')
 
 
-class CategoryProductsView(APIView):
-    permission_classes = [permissions.AllowAny]
+class CategoryProductsViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = ProductSerializer
+    permission_classes = [AllowAny]
+    pagination_class = PageNumberPagination
 
-    def get(self, request, category_slug, *args, **kwargs):
+    def get_queryset(self):
+        category_slug = self.kwargs['category_slug']
         category = get_object_or_404(Category, slug=category_slug)
-        paginator = PageNumberPagination()
-        paginator.page_size = 10
-        products = Product.active_objects.filter(categories=category).select_related('brand')
-        result_page = paginator.paginate_queryset(products, request)
-        serializer = ProductSerializer(result_page, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        return Product.active_objects.filter(categories=category).select_related('brand')
 
 
-class ProductDetailView(APIView):
-    permission_classes = [permissions.AllowAny]
+class ProductListViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Product.active_objects.all()
+    serializer_class = ProductSerializer
+    filter_backends = [SearchFilter]
+    search_fields = ['name']
+    pagination_class = PageNumberPagination
 
-    def get(self, request, pk, *args, **kwargs):
-        product = get_object_or_404(Product.active_objects.prefetch_related('categories', 'reviews'), pk=pk)
-        serializer = ProductSerializer(product)
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        search_query = self.request.query_params.get('search', None)
+        if search_query:
+            queryset = queryset.filter(name__contains=search_query) 
+        return queryset
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance = Product.active_objects.prefetch_related('categories', 'reviews').get(pk=instance.pk)
+        serializer = self.get_serializer(instance)
         data = serializer.data
-        data['avg_rating'] = product.reviews.aggregate(Avg('rating'))['rating__avg'] or 0
-        data['review_count'] = product.reviews.count()
-        data['category_count'] = product.categories.annotate(product_count=Count('products')).count()
+        data['avg_rating'] = instance.reviews.aggregate(Avg('rating'))['rating__avg'] or 0
+        data['review_count'] = instance.reviews.count()
+        data['category_count'] = instance.categories.annotate(product_count=Count('products')).count()
         return Response(data)
 
 
-class ReviewCreateView(generics.CreateAPIView):
+class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if self.action in ['update', 'partial_update', 'destroy']:
+            return Review.objects.filter(user=self.request.user)
+        return super().get_queryset()
 
     def perform_create(self, serializer):
-        product_id = self.kwargs['pk']
+        product_id = self.kwargs.get('product_pk')
         product = get_object_or_404(Product, pk=product_id)
         serializer.save(user=self.request.user, product=product)
 
-    def create(self, request, *args, **kwargs):
-        response = super().create(request, *args, **kwargs)
-        product_id = self.kwargs['pk']
-        return redirect('product-detail', pk=product_id)
 
-
-class ReviewUpdateView(generics.UpdateAPIView):
-    queryset = Review.objects.all()
-    serializer_class = ReviewSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    lookup_field = 'pk'
-
-    def get_queryset(self):
-        return Review.objects.filter(user=self.request.user)
-
-
-class ReviewDeleteView(generics.DestroyAPIView):
-    queryset = Review.objects.all()
-    permission_classes = [permissions.IsAuthenticated]
-    lookup_field = 'pk'
-
-    def get_queryset(self):
-        return Review.objects.filter(user=self.request.user)
-
-
-class ProductStatsView(APIView):
-    permission_classes = [permissions.AllowAny]
+class ProductStatsView(views.APIView):
+    permission_classes = [AllowAny]
 
     def get(self, request):
         data = {
@@ -137,8 +127,8 @@ class ProductStatsView(APIView):
         return Response(data)
 
 
-class APIOverviewView(APIView):
-    permission_classes = [permissions.AllowAny]
+class APIOverviewView(views.APIView):
+    permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
         api_urls = [
@@ -149,7 +139,7 @@ class APIOverviewView(APIView):
                 "requires_auth": False,
             },
             {
-                "path": "api/random-recommended-products/",
+                "path": "api/random-recommended/",
                 "method": "GET",
                 "description": "Получить до 6 случайных рекомендованных продуктов",
                 "requires_auth": False,
@@ -169,7 +159,7 @@ class APIOverviewView(APIView):
             {
                 "path": "api/token/refresh/",
                 "method": "POST",
-                "description": "Обновить access-токен с помощью refresh-токена",
+                "description": "Обновить access токен с помощью refresh токена",
                 "requires_auth": False,
             },
             {
@@ -179,9 +169,9 @@ class APIOverviewView(APIView):
                 "requires_auth": True,
             },
             {
-                "path": "api/products/<int:pk>/detail/",
+                "path": "api/products/",
                 "method": "GET",
-                "description": "Получить полную информацию о товаре (все поля и связанные данные)",
+                "description": "Получить список продуктов с поиском по имени (параметр ?search=<query>)",
                 "requires_auth": False,
             },
             {
@@ -203,19 +193,19 @@ class APIOverviewView(APIView):
                 "requires_auth": False,
             },
             {
-                "path": "api/products/<int:pk>/reviews/create/",
+                "path": "api/products/<int:product_pk>/reviews/",
                 "method": "POST",
-                "description": "Добавить отзыв к продукту",
+                "description": "Создать отзыв для продукта",
                 "requires_auth": True,
             },
             {
-                "path": "api/reviews/<int:pk>/update/",
+                "path": "api/reviews/<int:pk>/",
                 "method": "PUT/PATCH",
                 "description": "Редактировать отзыв",
                 "requires_auth": True,
             },
             {
-                "path": "api/reviews/<int:pk>/delete/",
+                "path": "api/reviews/<int:pk>/",
                 "method": "DELETE",
                 "description": "Удалить отзыв",
                 "requires_auth": True,

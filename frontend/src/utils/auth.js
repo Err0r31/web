@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:8000/api";
+import { login, register, logout } from "./api";
 
 export function saveTokens(tokens) {
   localStorage.setItem("access_token", tokens.access);
@@ -6,10 +6,10 @@ export function saveTokens(tokens) {
 }
 
 export function getAccessToken() {
-  localStorage.getItem("access_token");
+  return localStorage.getItem("access_token");
 }
 export function getRefreshToken() {
-  localStorage.getItem("refresh_token");
+  return localStorage.getItem("refresh_token");
 }
 
 export function removeTokens() {
@@ -17,46 +17,48 @@ export function removeTokens() {
   localStorage.removeItem("refresh_token");
 }
 
-export async function register(
+export async function authRegister(
   username,
   email,
   password,
-  address,
-  phone_number
+  address = "",
+  phone_number = ""
 ) {
-  const response = await fetch(`${API_URL}/register/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, email, password, address, phone_number }),
-  });
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(JSON.stringify(errorData));
+  try {
+    const data = await register(
+      username,
+      email,
+      password,
+      address,
+      phone_number
+    );
+    return data;
+  } catch (error) {
+    const errorData = error.response?.data || { message: "Ошибка регистрации" };
+    throw new Error(errorData.message || JSON.stringify(errorData));
   }
-  return await response.json();
 }
 
-export async function login(username, password) {
-  const response = await fetch(`${API_URL}/login/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username , password }),
-  });
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(JSON.stringify(errorData));
+export async function authLogin(username, password) {
+  try {
+    const data = await login(username, password);
+    saveTokens(data);
+    return data;
+  } catch (error) {
+    const errorData = error.response?.data || { message: "Ошибка входа" };
+    throw new Error(errorData.message || JSON.stringify(errorData));
   }
-  const data = await response.json();
-  saveTokens(data);
-  return data;
 }
 
-export async function logout() {
-  const refresh = getRefreshToken();
-  await fetch(`${API_URL}/logout/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh }),
-  });
-  removeTokens();
+export async function authLogout() {
+  try {
+    const refresh = getRefreshToken();
+    if (refresh) {
+      await logout(refresh);
+    }
+    removeTokens();
+  } catch (error) {
+    const errorData = error.response?.data || { message: "Ошибка выхода" };
+    throw new Error(errorData.message || JSON.stringify(errorData));
+  }
 }
