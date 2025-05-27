@@ -52,6 +52,7 @@ export default function RecommendedList() {
             name={product.name}
             category={product.last_category_name}
             price={product.total_price}
+            id={product.id}
           />
         ))}
       </div>

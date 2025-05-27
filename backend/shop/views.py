@@ -1,8 +1,10 @@
+from django.forms import ValidationError
 from rest_framework import viewsets, generics, status, views
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.db import IntegrityError
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import get_object_or_404, render
@@ -106,9 +108,14 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return super().get_queryset()
 
     def perform_create(self, serializer):
-        product_id = self.kwargs.get('product_pk')
-        product = get_object_or_404(Product, pk=product_id)
-        serializer.save(user=self.request.user, product=product)
+        try:
+            product_id = self.kwargs.get('product_pk')
+            product = get_object_or_404(Product, pk=product_id)
+            serializer.save(user=self.request.user, product=product)
+        except IntegrityError as e:
+            raise ValidationError({
+                'non_field_errors': 'Вы уже оставили отзыв на этот продукт.'
+            }) 
 
 
 class ProductStatsView(views.APIView):
@@ -125,102 +132,3 @@ class ProductStatsView(views.APIView):
         Product.objects.filter(is_active=False).update(discount_percentage=0)
         Banner.objects.filter(is_active=False).delete()
         return Response(data)
-
-
-class APIOverviewView(views.APIView):
-    permission_classes = [AllowAny]
-
-    def get(self, request, *args, **kwargs):
-        api_urls = [
-            {
-                "path": "api/banners/",
-                "method": "GET",
-                "description": "Получить список активных баннеров",
-                "requires_auth": False,
-            },
-            {
-                "path": "api/random-recommended/",
-                "method": "GET",
-                "description": "Получить до 6 случайных рекомендованных продуктов",
-                "requires_auth": False,
-            },
-            {
-                "path": "api/register/",
-                "method": "POST",
-                "description": "Зарегистрировать нового пользователя",
-                "requires_auth": False,
-            },
-            {
-                "path": "api/login/",
-                "method": "POST",
-                "description": "Войти и получить токены (access и refresh)",
-                "requires_auth": False,
-            },
-            {
-                "path": "api/token/refresh/",
-                "method": "POST",
-                "description": "Обновить access токен с помощью refresh токена",
-                "requires_auth": False,
-            },
-            {
-                "path": "api/logout/",
-                "method": "POST",
-                "description": "Выйти из системы (добавить refresh-токен в чёрный список)",
-                "requires_auth": True,
-            },
-            {
-                "path": "api/products/",
-                "method": "GET",
-                "description": "Получить список продуктов с поиском по имени (параметр ?search=<query>)",
-                "requires_auth": False,
-            },
-            {
-                "path": "api/products/<int:pk>/",
-                "method": "GET",
-                "description": "Получить информацию о конкретном товаре",
-                "requires_auth": False,
-            },
-            {
-                "path": "api/user/orders/",
-                "method": "GET",
-                "description": "Получить список доставленных заказов текущего пользователя",
-                "requires_auth": True,
-            },
-            {
-                "path": "api/categories/<slug:category_slug>/products/",
-                "method": "GET",
-                "description": "Получить список товаров для категории с пагинацией (10 товаров на страницу)",
-                "requires_auth": False,
-            },
-            {
-                "path": "api/products/<int:product_pk>/reviews/",
-                "method": "POST",
-                "description": "Создать отзыв для продукта",
-                "requires_auth": True,
-            },
-            {
-                "path": "api/reviews/<int:pk>/",
-                "method": "PUT/PATCH",
-                "description": "Редактировать отзыв",
-                "requires_auth": True,
-            },
-            {
-                "path": "api/reviews/<int:pk>/",
-                "method": "DELETE",
-                "description": "Удалить отзыв",
-                "requires_auth": True,
-            },
-            {
-                "path": "api/product-stats/",
-                "method": "GET",
-                "description": "Получить статистику по продуктам и заказам",
-                "requires_auth": False,
-            },
-        ]
-
-        if request.accepted_renderer.format == 'html':
-            return render(request, 'api_overview.html', {'endpoints': api_urls})
-        return Response({
-            "message": "Добро пожаловать в API! Вот список доступных путей:",
-            "endpoints": api_urls
-        })

@@ -1,20 +1,29 @@
 import { login, register, logout } from "./api";
 
-export function saveTokens(tokens) {
-  localStorage.setItem("access_token", tokens.access);
-  localStorage.setItem("refresh_token", tokens.refresh);
-}
+export function saveTokens({ access, refresh }) {
+  if (access && refresh) {
+    localStorage.setItem("access_token", access);
+    localStorage.setItem("refresh_token", refresh);
+    console.log("Tokens saved:", {
+      access: access.substring(0, 10) + "...",
+      refresh: refresh.substring(0, 10) + "...",
+    });
+  } else {
+    console.error("Invalid tokens received:", { access, refresh });
+  }
+};
 
-export function getAccessToken() {
-  return localStorage.getItem("access_token");
-}
-export function getRefreshToken() {
-  return localStorage.getItem("refresh_token");
-}
+export const getAccessToken = () => {
+  return localStorage.getItem('access_token');
+};
+
+export const getRefreshToken = () => {
+  return localStorage.getItem('refresh_token');
+};
 
 export function removeTokens() {
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("refresh_token");
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
 }
 
 export async function authRegister(
@@ -55,6 +64,7 @@ export async function authLogout() {
     const refresh = getRefreshToken();
     if (refresh) {
       await logout(refresh);
+      console.log('Logout successful');
     }
     removeTokens();
   } catch (error) {

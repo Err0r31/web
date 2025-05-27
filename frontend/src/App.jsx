@@ -6,6 +6,7 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import AuthPage from "./pages/AuthPage/AuthPage";
 import NotFound from "./components/NotFound/NotFound";
+import ProductPage from "./pages/ProductPage/ProductPage";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Routes>
             <Route path="/" element={<MainPage />} />
             <Route path="/register" element={<AuthPage />} />
+            <Route path="/products/:id" element={<ProductPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Router>

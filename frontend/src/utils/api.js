@@ -9,16 +9,15 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    // Список публичных эндпоинтов, не требующих токена
     const publicEndpoints = [
-      'banners/',
-      'random-recommended/',
-      'products/',
-      'categories/',
-      'product-stats/',
-      'register/',
-      'login/',
-      'token/refresh/',
+      "banners/",
+      "random-recommended/",
+      "products/",
+      "categories/",
+      "product-stats/",
+      "register/",
+      "login/",
+      "token/refresh/",
     ];
     const isPublic = publicEndpoints.some((endpoint) =>
       config.url.includes(endpoint)
@@ -27,9 +26,9 @@ api.interceptors.request.use(
       const token = getAccessToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
-        console.log('Sending token:', token); // Отладка
+        console.log("Sending token:", token);
       } else {
-        console.log('No token found for protected endpoint:', config.url); // Отладка
+        console.log("No token found for protected endpoint:", config.url);
       }
     }
     return config;
@@ -44,39 +43,57 @@ api.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url.includes('login/') &&
-      !originalRequest.url.includes('refresh/')
+      !originalRequest.url.includes("login/") &&
+      !originalRequest.url.includes("refresh/")
     ) {
       originalRequest._retry = true;
       try {
         const refresh = getRefreshToken();
         if (!refresh) {
-          throw new Error('No refresh token available');
+          throw new Error("No refresh token available");
         }
-        const response = await axios.post('http://127.0.0.1:8000/api/token/refresh/', {
-          refresh,
-        });
+        console.log("Attempting to refresh token");
+        const response = await axios.post(
+          "http://127.0.0.1:8000/api/token/refresh/",
+          {
+            refresh,
+          }
+        );
         const newTokens = response.data;
+        if (!newTokens.access || !newTokens.refresh) {
+          throw new Error("Invalid refresh response");
+        }
         saveTokens(newTokens);
+        console.log("Token refreshed successfully");
         originalRequest.headers.Authorization = `Bearer ${newTokens.access}`;
         return api(originalRequest);
       } catch (refreshError) {
-        showToast('Сессия истекла, войдите заново', 'error');
+        console.error(
+          "Token refresh failed:",
+          refreshError.response?.data || refreshError
+        );
+        showToast("Сессия истекла, войдите заново", "error");
         return Promise.reject(refreshError);
       }
     }
-    let message = 'Произошла ошибка';
+    let message = "Произошла ошибка";
     if (error.response) {
       if (error.response.status === 401) {
-        message = 'Ошибка авторизации: проверьте токен или войдите заново';
+        message = "Сессия истекла, войдите заново";
       } else if (error.response.status === 404) {
-        message = 'Ресурс не найден';
+        message = "Ресурс не найден";
+      } else if (error.response.status === 400) {
+        message =
+          error.response.data?.non_field_errors?.join(", ") ||
+          error.response.data?.detail ||
+          JSON.stringify(error.response.data);
       } else {
-        message = error.response.data?.message || `Ошибка ${error.response.status}`;
+        message =
+          error.response.data?.message || `Ошибка ${error.response.status}`;
       }
     }
-    showToast(message, 'error');
-    console.error('API Error:', error);
+    showToast(message, "error");
+    console.error("API Error:", error.response?.data || error);
     return Promise.reject(error);
   }
 );
@@ -95,4 +112,10 @@ export const logout = (refreshToken) =>
 export const searchProducts = (query) =>
   api
     .get(`products/?search=${encodeURIComponent(query)}`)
+    .then((res) => res.data);
+export const getProduct = (id) =>
+  api.get(`products/${id}/`).then((res) => res.data);
+export const addReview = (productId, reviewData) =>
+  api
+    .post(`products/${productId}/reviews/`, reviewData)
     .then((res) => res.data);

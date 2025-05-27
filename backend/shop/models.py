@@ -1,3 +1,4 @@
+from django import forms
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
@@ -5,6 +6,7 @@ import uuid
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils.text import slugify
+import re
 
 class ActiveOrderManager(models.Manager):
     def get_queryset(self):
@@ -134,15 +136,22 @@ class ProductVariation(models.Model):
     id = models.AutoField(primary_key=True, verbose_name='ID')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variations', verbose_name='Продукт')
     size = models.CharField(max_length=10, verbose_name='Размер')
-    color = models.CharField(max_length=50, verbose_name='Цвет')
+    color = models.CharField(max_length=7, verbose_name='Цвет')
     available_stock = models.PositiveIntegerField(default=0, verbose_name='Количество на складе', blank=True)
     reserved_quantity = models.PositiveIntegerField(default=0, verbose_name='Зарезервировано', blank=True)
     sold_quantity = models.PositiveIntegerField(default=0, verbose_name='Продано', blank=True)
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
-    images = models.ImageField(upload_to='product_variations/', blank=True, null=True, verbose_name='Изображение вариации')
     stock = models.PositiveIntegerField(default=0, editable=False, verbose_name='Доступный запас')
 
+    def clean(self):
+        if not re.match(r'^#[0-9a-fA-F]{6}$', self.color):
+            raise ValidationError('Цвет должен быть в формате HEX, например, #ffffff.')
+        self.color = self.color.lower()
+        if not ProductColorImage.objects.filter(product=self.product, color=self.color).exists():
+            raise ValidationError(f'Для цвета {self.color} нет изображений. Добавьте изображение в ProductColorImage.')
+
     def save(self, *args, **kwargs):
+        self.clean()
         self.available_stock = self.available_stock or 0
         self.reserved_quantity = self.reserved_quantity or 0
         self.stock = self.available_stock - self.reserved_quantity
@@ -177,6 +186,41 @@ class ProductVariation(models.Model):
         verbose_name = 'Вариация продукта'
         verbose_name_plural = 'Вариации продуктов'
         unique_together = ('product', 'size', 'color')
+
+
+class ProductColorImage(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name='ID')
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='color_images',
+        verbose_name='Продукт',
+    )
+    color = models.CharField(max_length=7, verbose_name='Цвет')
+    image = models.ImageField(upload_to='product_colors/images/', verbose_name='Изображение')
+    created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
+
+    def clean(self):
+        if not re.match(r'^#[0-9a-fA-F]{6}$', self.color):
+            raise ValidationError('Цвет должен быть в формате HEX, например, #ffffff.')
+        self.color = self.color.lower()
+        if (self.pk is None and
+                ProductColorImage.objects.filter(product=self.product, color=self.color).count() >= 5):
+            raise ValidationError('Максимум 5 изображений для одного цвета.')
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Изображение для {self.product.name} ({self.color})"
+
+    class Meta:
+        verbose_name = 'Изображение цвета продукта'
+        verbose_name_plural = 'Изображения цветов продуктов'
+        unique_together = ('product', 'color', 'image')
+        ordering = ['created_at']
+
 
 class Order(models.Model):
     STATUS_CHOICES = (

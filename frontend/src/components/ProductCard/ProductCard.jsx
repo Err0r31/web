@@ -1,8 +1,9 @@
+import { Link } from "react-router-dom";
 import styles from "./ProductCard.module.scss";
 
-export default function ProductCard({ image, name, category, price }) {
+export default function ProductCard({ image, name, category, price, id }) {
     return (
-        <div className={styles.productCard}>
+        <Link to={`/products/${id}`} className={styles.productCard}>
             <img src={image} alt={name} className={styles.productCard__image} loading="lazy" />
             <p className={styles.productCard__price}>{price} ₽</p>
             <div className={styles.productCard__textWrapper}>
@@ -10,6 +11,6 @@ export default function ProductCard({ image, name, category, price }) {
                 <p className={styles.productCard__category}>{category}</p>
             </div>
             <button className={styles.productCard__link}>Купить</button>
-        </div>
+        </Link>
     );
 }

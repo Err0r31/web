@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Category, Banner, Product, ProductVariation, Order, OrderItem, Review, ProductCategory
+from .models import User, Category, Banner, Product, ProductVariation, Order, OrderItem, Review, ProductCategory, ProductColorImage
 from django.http import HttpResponse
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
@@ -10,6 +10,21 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import os
+
+class ProductColorImageInline(admin.TabularInline):
+    model = ProductColorImage
+    extra = 1
+    readonly_fields = ['created_at', 'color_preview']
+    fields = ['color', 'color_preview', 'image', 'created_at']
+
+    def color_preview(self, obj):
+        if obj.color:
+            return format_html(
+                '<div style="width: 30px; height: 30px; background-color: {}; border: 1px solid #000;"></div>',
+                obj.color
+            )
+        return "-"
+    color_preview.short_description = 'Превью цвета'
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
@@ -40,6 +55,15 @@ class ProductVariationInline(admin.TabularInline):
     extra = 1
     readonly_fields = ['created_at', 'stock']
     fields = ['size', 'color', 'available_stock', 'reserved_quantity', 'sold_quantity', 'stock', 'created_at']
+
+    def color_preview(self, obj):
+        if obj.color:
+            return format_html(
+                '<div style="width: 30px; height: 30px; background-color: {}; border: 1px solid #000;"></div>',
+                obj.color
+            )
+        return "-"
+    color_preview.short_description = 'Превью цвета'
 
 class ProductCategoryInline(admin.TabularInline):
     model = ProductCategory
@@ -107,7 +131,7 @@ class ProductAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at', 'total_price']
     date_hierarchy = 'created_at'
     list_display_links = ['name']
-    inlines = [ProductVariationInline, ProductCategoryInline]
+    inlines = [ProductVariationInline, ProductCategoryInline, ProductColorImageInline]
     fieldsets = (
         (None, {'fields': ('name', 'description', 'brand', 'price')}),
         ('Изображения', {'fields': ('image',)}),
@@ -121,28 +145,37 @@ class ProductAdmin(admin.ModelAdmin):
         return "-"
     image_preview.short_description = "Превью"
 
-    @admin.display(description='Категории')
     def get_categories(self, obj):
         return ", ".join([category.name for category in obj.categories.all()])
+    get_categories.short_description = 'Категории'
 
 @admin.register(ProductVariation)
 class ProductVariationAdmin(admin.ModelAdmin):
     list_display = ['product_name', 'size', 'color', 'available_stock', 'reserved_quantity', 'sold_quantity', 'get_stock', 'created_at']
     list_filter = ['product', 'size', 'color']
     search_fields = ['product__name', 'size', 'color']
-    readonly_fields = ['created_at', 'stock']
+    readonly_fields = ['created_at', 'stock', 'color_preview']
     date_hierarchy = 'created_at'
     list_display_links = ['product_name']
     raw_id_fields = ['product']
     fields = ['product', 'size', 'color', 'available_stock', 'reserved_quantity', 'sold_quantity', 'stock', 'created_at']
 
-    @admin.display(description='Продукт')
     def product_name(self, obj):
         return obj.product.name
+    product_name.short_description = 'Продукт'
 
-    @admin.display(description='Доступный запас')
     def get_stock(self, obj):
         return obj.stock
+    get_stock.short_description = 'Доступный запас'
+
+    def color_preview(self, obj):
+        if obj.color:
+            return format_html(
+                '<div style="width: 30px; height: 30px; background-color: {}; border: 1px solid #000;"></div>',
+                obj.color
+            )
+        return "-"
+    color_preview.short_description = 'Превью цвета'
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
