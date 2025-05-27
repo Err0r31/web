@@ -151,7 +151,7 @@ export default function ProductPage() {
               {colorImages.length > 0 ? (
                 <Slider {...sliderSettings} ref={sliderRef}>
                   {colorImages.map((img) => (
-                    <div className="product__sliderItem" key={img.id}>
+                    <div className={styles.product__sliderItem} key={img.id}>
                       <img
                         src={img.image}
                         alt={`${product.name} ${img.color}`}
@@ -174,59 +174,62 @@ export default function ProductPage() {
                 </div>
               )}
             </div>
-            <div className={styles.product__details}>
-              <div className={styles.product__textWrapper}>
-                <p className={styles.product__rating}>
-                  {product.avg_rating?.toFixed(1) || 0}
-                </p>
-                <h1 className={styles.product__title}>{product.name}</h1>
-                <p className={styles.product__brand}>{product.brand}</p>
+            <div className={styles.product__leftSide}>
+              <div className={styles.product__details}>
+                <div className={styles.product__textWrapper}>
+                  <p className={styles.product__rating}>
+                    Рейтинг: {product.avg_rating?.toFixed(1) || 0}
+                  </p>
+                  <h1 className={styles.product__title}>{product.name}</h1>
+                  <p className={styles.product__brand}>{product.brand}</p>
+                </div>
+                <p className={styles.product__price}>{product.total_price} ₽</p>
               </div>
-              <p className={styles.product__price}>{product.total_price} ₽</p>
-            </div>
-            <div className={styles.variations}>
-              <div className={styles.variations__group}>
-                <p className={styles.variations__title}>Цвет:</p>
-                <div className={styles.variations__selector}>
-                  {availableColors.map((color) => (
-                    <button
-                      key={color}
-                      className={`${styles.variations__button} ${
-                        selectedColor === color
-                          ? styles.variations__buttonActive
-                          : ""
-                      }`}
-                      onClick={() => setSelectedColor(color)}
-                      title={color}
-                    ></button>
-                  ))}
+              <div className={styles.variations}>
+                <div className={styles.variations__group}>
+                  <p className={styles.variations__title}>Цвет:</p>
+                  <div className={styles.variations__selector}>
+                    {availableColors.map((color) => (
+                      <button
+                        key={color}
+                        className={`${styles.variations__colorButton} ${
+                          selectedColor === color
+                            ? styles.variations__colorButtonActive
+                            : ""
+                        }`}
+                        style={{ backgroundColor: color }}
+                        onClick={() => setSelectedColor(color)}
+                        title={color}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className={styles.variations__group}>
+                  <p className={styles.variations__title}>Размер:</p>
+                  <div className={styles.variations__selector}>
+                    {availableSizes.map((size) => (
+                      <button
+                        key={size}
+                        onClick={() => setSelectedSize(size)}
+                        className={`${styles.variations__sizeButton} ${
+                          selectedSize === size
+                            ? styles.variations__sizeButtonActive
+                            : ""
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div className={styles.variation__group}>
-                <p className={styles.variations__title}>Размер:</p>
-                <div className={styles.variations__selector}>
-                  {availableSizes.map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`${styles.variations__button} ${
-                        selectedSize === size
-                          ? styles.variations__buttonActive
-                          : ""
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <button
+                className={styles.product__button}
+                disabled={!selectedVariation || selectedVariation.stock === 0}
+              >
+                Добавить в корзину
+              </button>
             </div>
-            <button
-              className={styles.product__button}
-              disabled={!selectedVariation || selectedVariation.stock === 0}
-            >
-              Добавить в корзину
-            </button>
             <div className={styles.product__descriptionWrapper}>
               <h2 className={styles.product__subtitle}>Подробнее о товаре</h2>
               <p className={styles.product__description}>
@@ -239,15 +242,16 @@ export default function ProductPage() {
                 <ul className={styles.reviews__list}>
                   {product.reviews.map((review) => (
                     <li key={review.id} className={styles.reviews__item}>
-                      <p className={styles.reviews__rating}>
-                        Рейтинг: {"★".repeat(review.rating)}
-                        {"☆".repeat(5 - review.rating)}
-                      </p>
+                      <div className={styles.reviews__topWrapper}>
+                        <p className={styles.reviews__user}>
+                          {review.user || "Аноним"}
+                        </p>
+                        <p className={styles.reviews__rating}>
+                          Рейтинг: {review.rating}
+                        </p>
+                      </div>
                       <p className={styles.reviews__comment}>
                         {review.comment}
-                      </p>
-                      <p className={styles.reviews__user}>
-                        Пользователь: {review.user || "Аноним"}
                       </p>
                       <p className={styles.reviews__date}>
                         {new Date(review.created_at).toLocaleDateString()}
@@ -263,9 +267,12 @@ export default function ProductPage() {
                 className={styles.reviews__form}
               >
                 <h3 className={styles.reviews__formTitle}>Оставить отзыв</h3>
-                <div className={styles.form__group}>
-                  <label htmlFor="rating">Рейтинг:</label>
+                <div className={styles.reviews__group}>
+                  <label className={styles.reviews__label} htmlFor="rating">
+                    Рейтинг:
+                  </label>
                   <select
+                    className={styles.reviews__select}
                     id="rating"
                     value={rating}
                     onChange={(e) => setRating(Number(e.target.value))}
@@ -278,9 +285,12 @@ export default function ProductPage() {
                     ))}
                   </select>
                 </div>
-                <div className={styles.form__group}>
-                  <label htmlFor="comment">Комментарий:</label>
+                <div className={styles.reviews__group}>
+                  <label className={styles.reviews__label} htmlFor="comment">
+                    Комментарий:
+                  </label>
                   <textarea
+                    className={styles.reviews__textarea}
                     id="comment"
                     value={reviewText}
                     onChange={(e) => setReviewText(e.target.value)}
@@ -288,7 +298,7 @@ export default function ProductPage() {
                     placeholder="Ваш отзыв..."
                   />
                 </div>
-                <button type="submit" className={styles.form__button}>
+                <button type="submit" className={styles.reviews__button}>
                   Отправить
                 </button>
               </form>
