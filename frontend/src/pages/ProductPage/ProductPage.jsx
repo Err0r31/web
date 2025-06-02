@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { PuffLoader } from "react-spinners";
 import { getProduct } from "../../utils/api";
@@ -21,7 +21,6 @@ export default function ProductPage() {
   const [selectedVariation, setSelectedVariation] = useState(null);
   const sliderRef = useRef(null);
   const { showToast } = useToast();
-  const { isAuthenticated } = useContext(AuthContext);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -85,7 +84,7 @@ export default function ProductPage() {
   if (loading) {
     return (
       <div className="container">
-        <div className={styles.loading}>
+        <div className={styles.loading} role="status" aria-live="polite">
           <PuffLoader color="#3E549D" size={60} />
         </div>
       </div>
@@ -95,7 +94,9 @@ export default function ProductPage() {
   if (error) {
     return (
       <div className="container">
-        <div className={styles.error}>{error}</div>
+        <div className={styles.error} role="alert">
+          {error}
+        </div>
       </div>
     );
   }
@@ -103,7 +104,9 @@ export default function ProductPage() {
   if (!product) {
     return (
       <div className="container">
-        <div className={styles.error}>Товар не найден!</div>
+        <div className={styles.error} role="alert">
+          Товар не найден!
+        </div>
       </div>
     );
   }
@@ -111,14 +114,24 @@ export default function ProductPage() {
   return (
     <>
       <Header />
-      <main className="content">
+      <main className="content" id="main-content">
         <div className="container">
           <div className={styles.product}>
-            <div className={styles.product__slider}>
+            <div 
+              className={styles.product__slider}
+              role="region"
+              aria-label="Галерея изображений товара"
+            >
               {colorImages.length > 0 ? (
                 <Slider {...sliderSettings} ref={sliderRef}>
-                  {colorImages.map((img) => (
-                    <div className={styles.product__sliderItem} key={img.id}>
+                  {colorImages.map((img, index) => (
+                    <div 
+                      className={styles.product__sliderItem} 
+                      key={img.id}
+                      role="group"
+                      aria-roledescription="слайд"
+                      aria-label={`${index + 1} из ${colorImages.length}`}
+                    >
                       <img
                         src={img.image}
                         alt={`${product.name} ${img.color}`}
@@ -136,7 +149,7 @@ export default function ProductPage() {
                   loading="lazy"
                 />
               ) : (
-                <div className={styles.product__placeholder}>
+                <div className={styles.product__placeholder} aria-hidden="true">
                   Изображение отсутствует
                 </div>
               )}
@@ -144,18 +157,37 @@ export default function ProductPage() {
             <div className={styles.product__leftSide}>
               <div className={styles.product__details}>
                 <div className={styles.product__textWrapper}>
-                  <p className={styles.product__rating}>
+                  <p 
+                    className={styles.product__rating}
+                    aria-label={`Рейтинг товара: ${product.avg_rating?.toFixed(1) || 0} из 5`}
+                  >
                     Рейтинг: {product.avg_rating?.toFixed(1) || 0}
                   </p>
                   <h1 className={styles.product__title}>{product.name}</h1>
                   <p className={styles.product__brand}>{product.brand}</p>
                 </div>
-                <p className={styles.product__price}>{product.total_price} ₽</p>
+                <p 
+                  className={styles.product__price}
+                  aria-label={`Цена: ${product.total_price} рублей`}
+                >
+                  {product.total_price} ₽
+                </p>
               </div>
-              <div className={styles.variations}>
-                <div className={styles.variations__group}>
-                  <p className={styles.variations__title}>Цвет:</p>
-                  <div className={styles.variations__selector}>
+              <div 
+                className={styles.variations}
+                role="group"
+                aria-label="Выбор цвета и размера"
+              >
+                <div 
+                  className={styles.variations__group}
+                  role="radiogroup"
+                  aria-label="Выбор цвета"
+                >
+                  <p className={styles.variations__title} id="color-label">Цвет:</p>
+                  <div 
+                    className={styles.variations__selector}
+                    aria-labelledby="color-label"
+                  >
                     {availableColors.map((color) => (
                       <button
                         key={color}
@@ -166,14 +198,24 @@ export default function ProductPage() {
                         }`}
                         style={{ backgroundColor: color }}
                         onClick={() => setSelectedColor(color)}
-                        title={color}
+                        aria-label={`Цвет: ${color}`}
+                        aria-pressed={selectedColor === color}
+                        role="radio"
+                        aria-checked={selectedColor === color}
                       />
                     ))}
                   </div>
                 </div>
-                <div className={styles.variations__group}>
-                  <p className={styles.variations__title}>Размер:</p>
-                  <div className={styles.variations__selector}>
+                <div 
+                  className={styles.variations__group}
+                  role="radiogroup"
+                  aria-label="Выбор размера"
+                >
+                  <p className={styles.variations__title} id="size-label">Размер:</p>
+                  <div 
+                    className={styles.variations__selector}
+                    aria-labelledby="size-label"
+                  >
                     {availableSizes.map((size) => (
                       <button
                         key={size}
@@ -183,6 +225,10 @@ export default function ProductPage() {
                             ? styles.variations__sizeButtonActive
                             : ""
                         }`}
+                        aria-label={`Размер: ${size}`}
+                        aria-pressed={selectedSize === size}
+                        role="radio"
+                        aria-checked={selectedSize === size}
                       >
                         {size}
                       </button>
@@ -193,15 +239,29 @@ export default function ProductPage() {
               <button
                 className={styles.product__button}
                 disabled={!selectedVariation || selectedVariation.stock === 0}
+                aria-label={
+                  !selectedVariation 
+                    ? "Выберите цвет и размер" 
+                    : selectedVariation.stock === 0 
+                      ? "Нет в наличии" 
+                      : `Добавить ${product.name} в корзину`
+                }
               >
-                Добавить в корзину
+                {!selectedVariation || selectedVariation.stock === 0 
+                  ? "Нет в наличии" 
+                  : "Добавить в корзину"
+                }
               </button>
             </div>
-            <div className={styles.product__descriptionWrapper}>
+            <div 
+              className={styles.product__descriptionWrapper}
+              role="region"
+              aria-label="Описание товара"
+            >
               <h2 className={styles.product__subtitle}>Подробнее о товаре</h2>
-              <p className={styles.product__description}>
-                {product.description || "Описание отсутствует"}
-              </p>
+              <div className={styles.product__description}>
+                {product.description}
+              </div>
             </div>
             <Reviews productId={id} reviews={product.reviews} setProduct={setProduct} />
           </div>

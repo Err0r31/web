@@ -46,7 +46,7 @@ export default function Banner() {
   if (isLoading) {
     return (
       <div className="container">
-        <div className={styles.banner__loading}>
+        <div className={styles.banner__loading} role="status" aria-live="polite">
           <PuffLoader color="#3E549D" size={60} />
         </div>
       </div>
@@ -54,19 +54,37 @@ export default function Banner() {
   }
 
   if (error) {
-    <div className="container">return <div className={styles.banner__error}>{error}</div>;</div>
+    return (
+      <div className="container">
+        <div className={styles.banner__error} role="alert">
+          {error}
+        </div>
+      </div>
+    );
   }
 
   if (!banners || banners.length === 0) {
-    <div className="container">return <div className={styles.banner__loading}>Баннеры не найдены!</div>;</div>
+    return (
+      <div className="container">
+        <div className={styles.banner__loading} role="status">
+          Баннеры не найдены!
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className={styles.banner}>
+    <section className={styles.banner} aria-label="Рекламные баннеры">
       <div className="container">
         <Slider {...settings} ref={sliderRef}>
-          {banners.map((banner) => (
-            <div key={banner.id} className={styles.banner__item}>
+          {banners.map((banner, index) => (
+            <div 
+              key={banner.id} 
+              className={styles.banner__item}
+              role="group"
+              aria-roledescription="слайд"
+              aria-label={`${index + 1} из ${banners.length}`}
+            >
               {banner.image ? (
                 <img
                   src={banner.image}
@@ -75,7 +93,7 @@ export default function Banner() {
                   className={styles.banner__img}
                 />
               ) : (
-                <div className={styles.banner__placeholder}>
+                <div className={styles.banner__placeholder} aria-hidden="true">
                   Изображения нет
                 </div>
               )}
@@ -85,27 +103,41 @@ export default function Banner() {
                   <p className={styles.banner__description}>
                     {banner.description}
                   </p>
-                  <Link to={banner.link} className={styles.banner__link}>
+                  <Link 
+                    to={banner.link} 
+                    className={styles.banner__link}
+                    aria-label={`Перейти к ${banner.title}`}
+                  >
                     Перейти
                   </Link>
                 </div>
-                <div className={styles.banner__arrows}>
+                <div 
+                  className={styles.banner__arrows}
+                  role="group"
+                  aria-label="Управление слайдером"
+                >
                   <button
                     type="button"
                     className={styles.banner__customArrow}
                     onClick={() => sliderRef.current.slickPrev()}
+                    aria-label="Предыдущий слайд"
                   >
-                    <BsArrowLeft />
+                    <BsArrowLeft aria-hidden="true" />
                   </button>
-                  <span className={styles.banner__slideCounter}>
+                  <span 
+                    className={styles.banner__slideCounter}
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
                     {currentSlide + 1} / {banners.length}
                   </span>
                   <button
                     type="button"
                     className={styles.banner__customArrow}
                     onClick={() => sliderRef.current.slickNext()}
+                    aria-label="Следующий слайд"
                   >
-                    <BsArrowRight />
+                    <BsArrowRight aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -113,6 +145,6 @@ export default function Banner() {
           ))}
         </Slider>
       </div>
-    </div>
+    </section>
   );
 }

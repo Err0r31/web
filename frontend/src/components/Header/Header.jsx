@@ -19,6 +19,7 @@ export default function Header() {
   const [isLoading, setIsLoading] = useState(false);
   const [searchError, setSearchError] = useState(null);
   const searchRef = useRef(null);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
   const debouncedSearch = debounce(async (query) => {
     if (!query.trim()) {
@@ -41,7 +42,7 @@ export default function Header() {
 
   useEffect(() => {
     debouncedSearch(searchQuery);
-    return () => debouncedSearch.cancel(); // Очистка при размонтировании
+    return () => debouncedSearch.cancel();
   }, [searchQuery]);
 
   useEffect(() => {
@@ -65,44 +66,53 @@ export default function Header() {
     }
   };
 
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      setSearchQuery("");
+      setSearchResults([]);
+      setIsSearchExpanded(false);
+    }
+  };
+
   return (
-    <header className={styles.header}>
+    <header className={styles.header} role="banner">
       <div className={styles.header__top}>
         <div className="container">
           <div className={styles.header__topWrapper}>
-            <div className={styles.header__topCategories}>
+            <nav className={styles.header__topCategories} role="navigation" aria-label="Основные категории">
               <Link to="/" className={styles.header__topLink}>
                 Мужское
               </Link>
               <Link to="/" className={styles.header__topLink}>
                 Женское
               </Link>
-            </div>
-            <Link to="/" className={styles.header__logo}>
+            </nav>
+            <Link to="/" className={styles.header__logo} aria-label="Wearly - На главную">
               Wearly
             </Link>
-            <div className={styles.header__functions}>
-              <Link to="/" className={styles.header__link}>
-                <FiHeart className={styles.header__icon} />
-                Избранное
+            <div className={styles.header__functions} role="navigation" aria-label="Пользовательское меню">
+              <Link to="/" className={styles.header__link} aria-label="Избранное">
+                <FiHeart className={styles.header__icon} aria-hidden="true" />
+                <span>Избранное</span>
               </Link>
               {isAuthenticated ? (
                 <button
                   onClick={handleLogoutClick}
                   className={styles.header__link}
+                  aria-label="Выйти из аккаунта"
                 >
-                  <FiLogOut className={styles.header__icon} />
-                  Выйти
+                  <FiLogOut className={styles.header__icon} aria-hidden="true" />
+                  <span>Выйти</span>
                 </button>
               ) : (
-                <Link to="/register" className={styles.header__link}>
-                  <FiUser className={styles.header__icon} />
-                  Войти
+                <Link to="/register" className={styles.header__link} aria-label="Войти в аккаунт">
+                  <FiUser className={styles.header__icon} aria-hidden="true" />
+                  <span>Войти</span>
                 </Link>
               )}
-              <Link to="/" className={styles.header__link}>
-                <FiShoppingCart className={styles.header__icon} />
-                Корзина
+              <Link to="/" className={styles.header__link} aria-label="Корзина">
+                <FiShoppingCart className={styles.header__icon} aria-hidden="true" />
+                <span>Корзина</span>
               </Link>
             </div>
           </div>
@@ -111,7 +121,7 @@ export default function Header() {
       <div className={styles.header__bottom}>
         <div className="container">
           <div className={styles.header__bottomWrapper}>
-            <nav className={styles.header__nav}>
+            <nav className={styles.header__nav} role="navigation" aria-label="Категории товаров">
               <Link to="/" className={styles.header__bottomLink}>
                 Одежда
               </Link>
@@ -134,23 +144,36 @@ export default function Header() {
                 Скидки %
               </Link>
             </nav>
-            <div className={styles.header__searchWrapper} ref={searchRef}>
+            <div 
+              className={styles.header__searchWrapper} 
+              ref={searchRef}
+              role="search"
+            >
               <input
                 type="text"
                 className={styles.header__search}
                 placeholder="Поиск..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                aria-label="Поиск по сайту"
+                aria-expanded={isSearchExpanded}
+                aria-controls="search-results"
+                aria-describedby={searchError ? "search-error" : undefined}
               />
               {isLoading && (
-                <div className={styles.header__searchLoading}>
+                <div className={styles.header__searchLoading} aria-live="polite">
                   <PuffLoader color="#3E549D" size={24} />
+                  <span className="sr-only">Загрузка результатов...</span>
                 </div>
               )}
               <AnimatePresence>
                 {searchResults.length > 0 && (
                   <motion.div
+                    id="search-results"
                     className={styles.header__searchResults}
+                    role="listbox"
+                    aria-label="Результаты поиска"
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -169,7 +192,13 @@ export default function Header() {
                 )}
               </AnimatePresence>
               {searchError && (
-                <div className={styles.header__searchError}>{searchError}</div>
+                <div 
+                  id="search-error"
+                  className={styles.header__searchError}
+                  role="alert"
+                >
+                  {searchError}
+                </div>
               )}
             </div>
           </div>

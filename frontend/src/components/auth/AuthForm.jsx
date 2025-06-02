@@ -41,52 +41,77 @@ export default function AuthForm({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
+      role="region"
+      aria-label={title}
     >
       <form
         className={styles.authForm}
         onSubmit={handleSubmit(handleFormSubmit)}
+        noValidate
       >
         <div className={styles.authForm__titleWrapper}>
-          <h1 className={styles.authForm__title}>{title}</h1>
+          <h2 className={styles.authForm__title}>{title}</h2>
           <button
             className={styles.authForm__button}
             onClick={switchFunc}
             type="button"
+            aria-label={`Переключить на ${switchText}`}
           >
             {switchText}
           </button>
         </div>
         <div className={styles.authForm__inputs}>
           {fields.map((field) => (
-            <div key={field.name} className={styles.authForm__inputWrapper}>
-              {field.icon}
+            <div 
+              key={field.name} 
+              className={styles.authForm__inputWrapper}
+              role="group"
+              aria-labelledby={`${field.name}-label`}
+            >
+              <label 
+                id={`${field.name}-label`} 
+                htmlFor={field.name}
+                className="sr-only"
+              >
+                {field.placeholder}
+              </label>
+              {field.icon && (
+                <span className={styles.authForm__iconWrapper} aria-hidden="true">
+                  {field.icon}
+                </span>
+              )}
               <input
-                type={
-                  field.type === "password" && showPassword
-                    ? "text"
-                    : field.type
-                }
+                id={field.name}
+                type={field.type === "password" && showPassword ? "text" : field.type}
                 placeholder={field.placeholder}
                 className={`${styles.authForm__input} ${
                   errors[field.name] ? styles["authForm__input--error"] : ""
                 }`}
                 {...register(field.name)}
-                autoComplete="off"
+                autoComplete={field.type === "password" ? "current-password" : "off"}
+                aria-invalid={errors[field.name] ? "true" : "false"}
+                aria-describedby={errors[field.name] ? `${field.name}-error` : undefined}
               />
-              {field.type === "password" &&
-                (showPassword ? (
-                  <FiEyeOff
-                    className={styles.authForm__toggleIcon}
-                    onClick={() => setShowPassword(false)}
-                  />
-                ) : (
-                  <FiEye
-                    className={styles.authForm__toggleIcon}
-                    onClick={() => setShowPassword(true)}
-                  />
-                ))}
+              {field.type === "password" && (
+                <button
+                  type="button"
+                  className={styles.authForm__toggleIcon}
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+                >
+                  {showPassword ? (
+                    <FiEyeOff aria-hidden="true" />
+                  ) : (
+                    <FiEye aria-hidden="true" />
+                  )}
+                </button>
+              )}
               {errors[field.name] && (
-                <p className={styles.authForm__error}>
+                <p 
+                  id={`${field.name}-error`}
+                  className={styles.authForm__error}
+                  role="alert"
+                >
                   {errors[field.name].message}
                 </p>
               )}
@@ -97,8 +122,17 @@ export default function AuthForm({
           type="submit"
           className={styles.authForm__submit}
           disabled={isLoading}
+          aria-busy={isLoading}
+          aria-label={isLoading ? "Загрузка..." : buttonText}
         >
-          {isLoading ? <PuffLoader color="#fff" size={24} /> : buttonText}
+          {isLoading ? (
+            <>
+              <PuffLoader color="#fff" size={24} />
+              <span className="sr-only">Загрузка...</span>
+            </>
+          ) : (
+            buttonText
+          )}
         </button>
       </form>
     </motion.div>

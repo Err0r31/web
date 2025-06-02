@@ -22,7 +22,7 @@ export default function AuthPage() {
   return (
     <>
       <Header />
-      <main className={`content ${styles.authPage}`}>
+      <main id="main-content" className={`content ${styles.authPage}`}>
         <AnimatePresence mode="wait">
           {isLogin ? (
             <motion.div
@@ -31,6 +31,8 @@ export default function AuthPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               transition={{ duration: 0.3 }}
+              role="region"
+              aria-label="Форма входа"
             >
               <Login
                 onLoginSuccess={handleLoginSuccess}
@@ -44,6 +46,8 @@ export default function AuthPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               transition={{ duration: 0.3 }}
+              role="region"
+              aria-label="Форма регистрации"
             >
               <Register switchFunc={switchForm} />
             </motion.div>
