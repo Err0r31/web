@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { PuffLoader } from "react-spinners";
-import { getProduct, addReview } from "../../utils/api";
+import { getProduct } from "../../utils/api";
 import { useToast } from "../../components/shared/Toast/ToastProvider";
 import { AuthContext } from "../../context/AuthContext";
 import styles from "./ProductPage.module.scss";
 import Header from "../../components/Header/Header";
 import Footer from "../../components/Footer/Footer";
+import Reviews from "../../components/Reviews/Reviews";
 
 import Slider from "react-slick";
 
@@ -19,8 +20,6 @@ export default function ProductPage() {
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedVariation, setSelectedVariation] = useState(null);
   const sliderRef = useRef(null);
-  const [reviewText, setReviewText] = useState("");
-  const [rating, setRating] = useState(5);
   const { showToast } = useToast();
   const { isAuthenticated } = useContext(AuthContext);
 
@@ -55,38 +54,6 @@ export default function ProductPage() {
       setSelectedVariation(variation || null);
     }
   }, [selectedColor, selectedSize, product]);
-
-  const handleReviewSubmit = async (e) => {
-    e.preventDefault();
-    if (!isAuthenticated) {
-      showToast("Войдите, чтобы оставить отзыв", "warning");
-      return;
-    }
-    const reviewData = {
-      product: id,
-      rating,
-      comment: reviewText,
-    };
-    try {
-      await addReview(id, reviewData);
-      showToast("Отзыв успешно отправлен", "success");
-      setReviewText("");
-      setRating(5);
-      const updatedProduct = await getProduct(id);
-      setProduct(updatedProduct);
-    } catch (err) {
-      if (err.response?.status === 401) {
-        showToast("Сессия истекла, войдите заново", "warning");
-      } else if (err.response?.status === 400) {
-        const errorDetail =
-          err.response?.data?.data?.non_field_errors?.join(", ") ||
-          err.response.data?.data?.detail ||
-          JSON.stringify(err.response.data || "Неверный формат данных");
-        showToast(`Ошибка: ${errorDetail}`, "error");
-      }
-      showToast(err.message || "Ошибка отправки отзыва", "error");
-    }
-  };
 
   const availableColors = [
     ...new Set(product?.variations?.map((v) => v.color) || []),
@@ -236,73 +203,7 @@ export default function ProductPage() {
                 {product.description || "Описание отсутствует"}
               </p>
             </div>
-            <div className={styles.reviews}>
-              <h2 className={styles.reviews__title}>Отзывы</h2>
-              {product.reviews?.length > 0 ? (
-                <ul className={styles.reviews__list}>
-                  {product.reviews.map((review) => (
-                    <li key={review.id} className={styles.reviews__item}>
-                      <div className={styles.reviews__topWrapper}>
-                        <p className={styles.reviews__user}>
-                          {review.user || "Аноним"}
-                        </p>
-                        <p className={styles.reviews__rating}>
-                          Рейтинг: {review.rating}
-                        </p>
-                      </div>
-                      <p className={styles.reviews__comment}>
-                        {review.comment}
-                      </p>
-                      <p className={styles.reviews__date}>
-                        {new Date(review.created_at).toLocaleDateString()}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>Отзывов пока нет</p>
-              )}
-              <form
-                onSubmit={handleReviewSubmit}
-                className={styles.reviews__form}
-              >
-                <h3 className={styles.reviews__formTitle}>Оставить отзыв</h3>
-                <div className={styles.reviews__group}>
-                  <label className={styles.reviews__label} htmlFor="rating">
-                    Рейтинг:
-                  </label>
-                  <select
-                    className={styles.reviews__select}
-                    id="rating"
-                    value={rating}
-                    onChange={(e) => setRating(Number(e.target.value))}
-                    required
-                  >
-                    {[1, 2, 3, 4, 5].map((value) => (
-                      <option key={value} value={value}>
-                        {value} {"★".repeat(value)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className={styles.reviews__group}>
-                  <label className={styles.reviews__label} htmlFor="comment">
-                    Комментарий:
-                  </label>
-                  <textarea
-                    className={styles.reviews__textarea}
-                    id="comment"
-                    value={reviewText}
-                    onChange={(e) => setReviewText(e.target.value)}
-                    required
-                    placeholder="Ваш отзыв..."
-                  />
-                </div>
-                <button type="submit" className={styles.reviews__button}>
-                  Отправить
-                </button>
-              </form>
-            </div>
+            <Reviews productId={id} reviews={product.reviews} setProduct={setProduct} />
           </div>
         </div>
       </main>

@@ -119,3 +119,11 @@ export const addReview = (productId, reviewData) =>
   api
     .post(`products/${productId}/reviews/`, reviewData)
     .then((res) => res.data);
+export const updateReview = (productId, reviewId, reviewData) =>
+  api
+    .put(`products/${productId}/reviews/${reviewId}/`, reviewData)
+    .then((res) => res.data);
+export const deleteReview = (productId, reviewId) =>
+  api
+    .delete(`products/${productId}/reviews/${reviewId}/`)
+    .then((res) => res.data);

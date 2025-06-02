@@ -10,6 +10,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class ReviewSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True)
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
 
     def validate_rating(self, value):
@@ -20,7 +21,7 @@ class ReviewSerializer(serializers.ModelSerializer):
     def validate(self, data):
         product = data.get('product')
         request = self.context.get('request')
-        if request and hasattr(request, 'user') and request.user.is_authenticated:
+        if self.instance is None and request and hasattr(request, 'user') and request.user.is_authenticated:
             if Review.objects.filter(product=product, user=request.user).exists():
                 raise serializers.ValidationError({
                     'non_field_errors': 'Вы уже оставили отзыв на этот продукт.'
@@ -34,7 +35,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        fields = ['id', 'product', 'user', 'rating', 'comment', 'created_at', 'updated_at']
+        fields = ['id', 'product', 'user', 'user_id', 'rating', 'comment', 'created_at', 'updated_at']
 
 
 class ProductColorImageSerializer(serializers.ModelSerializer):

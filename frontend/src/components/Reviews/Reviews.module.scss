@@ -1,0 +1,114 @@
+@use "../../scss/variables" as *;
+
+.reviews {  
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+
+    &__title {
+        font-size: 2.4rem;
+        font-weight: 600;
+    }
+
+    &__list {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    &__item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid $bright-gray;
+        background-color: $cultured;
+        transition: all 0.3s ease;
+
+        &:hover {
+            box-shadow: 0 4px 12px rgba($black, 0.1); 
+            transform: translateY(-2px);
+        }
+    }
+
+    &__topWrapper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+    }
+
+    &__user {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: $dark-charcoal;
+    }
+
+    &__rating {
+        color: $coquelicot;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    &__date {
+        font-size: 1.2rem;
+        color: $taupe-gray;
+        text-align: right;
+        font-style: italic;
+    }
+
+    &__form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid $bright-gray;
+        box-shadow: 0 2px 8px rgba($black, 0.05);
+    }
+
+    &__formTitle {
+        font-size: 2rem;
+        font-weight: 600;
+    }
+
+    &__group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    &__select,
+    &__textarea {
+        padding: 10px;
+        border: 1px solid $bright-gray;
+        border-radius: 8px;
+        background-color: $cultured;
+        transition: all 0.3s ease;
+
+        &:focus,
+        &:hover {
+            outline: none;
+            border-color: $primary;
+            box-shadow: 0 0 5px rgba($primary, 0.3);
+        }
+    }
+
+    &__textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    &__button {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: $white;
+        padding: 12px 20px;
+        background-color: $primary;
+        border: 1px solid $primary;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+}
