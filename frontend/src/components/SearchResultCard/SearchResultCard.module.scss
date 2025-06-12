@@ -36,4 +36,20 @@
         color: $taupe-gray;
         margin: 4px 0 0;
     }
+
+    @media (max-width: 767px) {
+        &__image {
+            width: 40px;
+            height: 40px;
+        }
+
+        &__name,
+        &__price {
+            font-size: 1.2rem;
+        }
+
+        &__name {
+            max-width: 150px;
+        }
+    }
 }

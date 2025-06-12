@@ -9,6 +9,9 @@ import Header from "../../components/Header/Header";
 import Footer from "../../components/Footer/Footer";
 import Reviews from "../../components/Reviews/Reviews";
 
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+
 import Slider from "react-slick";
 
 export default function ProductPage() {
@@ -71,7 +74,7 @@ export default function ProductPage() {
   const sliderSettings = {
     dots: true,
     infinite: true,
-    lazyLoad: true,
+    lazyLoad: "ondemand",
     speed: 500,
     slidesToShow: 1,
     slidesToScroll: 1,
@@ -79,6 +82,9 @@ export default function ProductPage() {
     autoplaySpeed: 10000,
     fade: true,
     pauseOnHover: true,
+    arrows: false, 
+    variableWidth: false, // Фиксированная ширина слайдов
+    centerMode: false,
   };
 
   if (loading) {
@@ -127,7 +133,7 @@ export default function ProductPage() {
                   {colorImages.map((img, index) => (
                     <div 
                       className={styles.product__sliderItem} 
-                      key={img.id}
+                      key={`${img.id}-${index}`}
                       role="group"
                       aria-roledescription="слайд"
                       aria-label={`${index + 1} из ${colorImages.length}`}

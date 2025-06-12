@@ -88,7 +88,8 @@ export default function Header() {
               </Link>
             </nav>
             <Link to="/" className={styles.header__logo} aria-label="Wearly - На главную">
-              Wearly
+              <span className={styles.header__logoText}>Wearly</span>
+              <span className={styles.header__logoSmall}>W</span>
             </Link>
             <div className={styles.header__functions} role="navigation" aria-label="Пользовательское меню">
               <Link to="/" className={styles.header__link} aria-label="Избранное">

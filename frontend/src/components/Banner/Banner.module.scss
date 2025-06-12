@@ -28,7 +28,7 @@
         align-items: flex-start;
         gap: 5px;
     }
-    
+
     &__title {
         font-size: 3.6rem;
         font-weight: 600;
@@ -77,5 +77,67 @@
 
     &__slideCounter {
         font-size: 1.4rem;
+    }
+
+    @media (max-width: 1199px) {
+        &__img {
+            height: 200px;
+        }
+
+        &__content {
+            gap: 40px;
+        }
+
+        &__title {
+            font-size: 3rem;
+        }
+
+        &__description {
+            font-size: 1.8rem;
+        }
+    }
+
+    @media (max-width: 767px) {
+        &__img {
+            height: 150px;
+            border-radius: 10px;
+        }
+
+        &__content {
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            text-align: center;
+        }
+
+        &__contentLeft {
+            align-items: center;
+        }
+
+        &__title {
+            font-size: 2.4rem;
+        }
+
+        &__description {
+            font-size: 1.6rem;
+            margin-bottom: 15px;
+        }
+
+        &__link {
+            padding: 6px 18px;
+            font-size: 1.4rem;
+        }
+
+        &__arrows {
+            justify-content: center;
+        }
+
+        &__customArrow {
+            font-size: 1.2rem;
+        }
+
+        &__slideCounter {
+            font-size: 1.2rem;
+        }
     }
 }

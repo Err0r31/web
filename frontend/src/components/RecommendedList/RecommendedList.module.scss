@@ -5,9 +5,38 @@
         margin-bottom: 20px;
     }
 
-    &__wrapper  {
+    &__wrapper {
         display: grid;
         grid-template-columns: repeat(6, 1fr);
         gap: 16px;
+    }
+
+    @media (max-width: 1199px) {
+        &__title {
+            font-size: 3rem;
+        }
+
+        &__wrapper {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+    }
+
+    @media (max-width: 767px) {
+        &__title {
+            font-size: 2.4rem;
+            text-align: center;
+        }
+
+        &__wrapper {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+    }
+
+    @media (max-width: 479px) {
+        &__wrapper {
+            grid-template-columns: 1fr;
+        }
     }
 }

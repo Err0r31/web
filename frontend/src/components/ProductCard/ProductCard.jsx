@@ -3,7 +3,7 @@ import styles from "./ProductCard.module.scss";
 
 export default function ProductCard({ image, name, category, price, id }) {
   return (
-    <article role="article" aria-labelledby={`product-name-${id}`}>
+    <article role="article" aria-labelledby={`product-name-${id}`} style={{display: 'flex'}}>
       <Link
         to={`/products/${id}`}
         className={styles.productCard}
