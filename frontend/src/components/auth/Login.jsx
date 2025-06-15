@@ -36,9 +36,9 @@ export default function Login({ onLoginSuccess, switchFunc }) {
 
   const onSubmit = async (data) => {
     try {
-      await authLogin(data.username, data.password);
+      const response = await authLogin(data.username, data.password);
       showToast("Вход выполнен успешно!", "success");
-      handleLogin();
+      handleLogin(response.access);
       onLoginSuccess();
     } catch (err) {
       showToast(err.message || "Ошибка при входе", "error");

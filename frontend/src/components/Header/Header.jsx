@@ -111,7 +111,7 @@ export default function Header() {
                   <span>Войти</span>
                 </Link>
               )}
-              <Link to="/" className={styles.header__link} aria-label="Корзина">
+              <Link to="/cart" className={styles.header__link} aria-label="Корзина">
                 <FiShoppingCart className={styles.header__icon} aria-hidden="true" />
                 <span>Корзина</span>
               </Link>

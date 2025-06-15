@@ -147,7 +147,7 @@ class ProductVariation(models.Model):
         if not re.match(r'^#[0-9a-fA-F]{6}$', self.color):
             raise ValidationError('Цвет должен быть в формате HEX, например, #ffffff.')
         self.color = self.color.lower()
-        if not ProductColorImage.objects.filter(product=self.product, color=self.color).exists():
+        if self.pk and self.product.pk and not ProductColorImage.objects.filter(product=self.product, color=self.color).exists():
             raise ValidationError(f'Для цвета {self.color} нет изображений. Добавьте изображение в ProductColorImage.')
 
     def save(self, *args, **kwargs):
@@ -204,10 +204,9 @@ class ProductColorImage(models.Model):
         if not re.match(r'^#[0-9a-fA-F]{6}$', self.color):
             raise ValidationError('Цвет должен быть в формате HEX, например, #ffffff.')
         self.color = self.color.lower()
-        if (self.pk is None and
-                ProductColorImage.objects.filter(product=self.product, color=self.color).count() >= 5):
-            raise ValidationError('Максимум 5 изображений для одного цвета.')
-
+        if self.pk is None and self.product.pk:
+            if ProductColorImage.objects.filter(product=self.product, color=self.color).count() >= 5:
+                raise ValidationError('Максимум 5 изображений для одного цвета.')
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
@@ -330,3 +329,58 @@ class Review(models.Model):
         unique_together = ['product', 'user']
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
+
+
+class Cart(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name='ID')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def get_total_price(self):
+        return sum(item.variation.product.total_price * item.quantity for item in self.items.all())
+
+    def __str__(self):
+        return f"Корзина {'пользователя ' + self.user.username}"
+    
+    class Meta:
+        verbose_name = 'Корзина'
+        verbose_name_plural = 'Корзины'
+
+
+class CartItem(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name='ID')
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items', verbose_name='Корзина')
+    variation = models.ForeignKey(ProductVariation, on_delete=models.CASCADE, verbose_name='Вариация продукта')
+    quantity = models.PositiveIntegerField(default=1, verbose_name='Количество')
+    created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
+
+    def clean(self):
+        if not self.variation.is_available(self.quantity):
+            raise ValidationError(f'Недостаточно запаса для {self.variation}. Доступно: {self.variation.stock}.')
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.variation} x {self.quantity} в корзине"
+
+    class Meta:
+        verbose_name = 'Элемент корзины'
+        verbose_name_plural = 'Элементы корзины'
+
+
+class Favorite(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorites', verbose_name='Пользователь')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='favorited_by', verbose_name='Продукт')
+    created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата добавления')
+
+    def __str__(self):
+        return f"{self.user.username} добавил {self.product.name} в избранное"
+    
+    class Meta:
+        verbose_name = 'Избранное'
+        verbose_name_plural = 'Избранное'
+        unique_together = ('user', 'product')

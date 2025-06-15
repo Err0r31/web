@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import styles from "./ProductCard.module.scss";
 
-export default function ProductCard({ image, name, category, price, id }) {
+export default function ProductCard({ image, name, category, price, totalPrice, discount, id }) {
   return (
     <article role="article" aria-labelledby={`product-name-${id}`} style={{display: 'flex'}}>
       <Link
@@ -15,12 +15,19 @@ export default function ProductCard({ image, name, category, price, id }) {
           className={styles.productCard__image}
           loading="lazy"
         />
-        <p
+        {discount > 0 ? (
+          <div className={styles.productCard__priceDiscount}>
+            <p className={styles.productCard__oldPrice}>{price} {" "}</p>
+            <p className={styles.productCard__totalPrice}>{totalPrice} ₽</p>
+          </div>
+        ) : (
+          <p
           className={styles.productCard__price}
-          aria-label={`Цена: ${price} рублей`}
+          aria-label={`Цена: ${totalPrice} рублей`}
         >
-          {price} ₽
+          {totalPrice} ₽
         </p>
+        )}
         <div className={styles.productCard__textWrapper}>
           <h3 id={`product-name-${id}`} className={styles.productCard__title}>
             {name}

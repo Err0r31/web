@@ -8,37 +8,34 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(!!getAccessToken());
   const [user, setUser] = useState(null);
 
-  useEffect(() => {
-    const token = getAccessToken();
-    setIsAuthenticated(!!token);
+  const updateUserFromToken = (token) => {
     if (token) {
       try {
         const decoded = jwtDecode(token);
+        console.log("Decoded", decoded);
         setUser({
-          id: decoded.user_id
+          id: decoded.user_id,
+          isAdmin: decoded.is_staff || decoded.is_superuser,
         });
+        setIsAuthenticated(true);
       } catch (err) {
         console.error("Ошибка декодирования токена:", err);
         setUser(null);
+        setIsAuthenticated(false);
       }
     } else {
       setUser(null);
+      setIsAuthenticated(false);
     }
+  };
+
+  useEffect(() => {
+    const token = getAccessToken();
+    updateUserFromToken(token);
   }, []);
 
-  const handleLogin = () => {
-    setIsAuthenticated(true);
-    const token = getAccessToken();
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        setUser({
-          id: decoded.user_id
-        });
-      } catch (err) {
-        console.error("Ошибка декодирования токена:", err);
-      }
-    }
+  const handleLogin = (token) => {
+    updateUserFromToken(token);
   };
 
   const handleLogout = async () => {

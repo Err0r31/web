@@ -17,6 +17,32 @@
         font-weight: 600;
     }
 
+    &__priceDiscount {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    &__oldPrice {
+        position: relative;
+        font-size: 1.4rem;
+
+        &::before {
+            content: '';
+            display: block;
+            width: 100%;
+            height: 1px;
+            background-color: $black;
+            position: absolute;
+            top: 50%;
+        }
+    }
+
+    &__totalPrice {
+        font-weight: 600;
+        color: $coquelicot;
+    }
+
     &__textWrapper {
         display: flex;
         flex-direction: column;

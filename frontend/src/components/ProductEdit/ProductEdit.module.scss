@@ -1,0 +1,278 @@
+@use "../../scss/variables" as *;
+
+.productEdit {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 40px 20px;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+  }
+
+  &__title {
+    font-size: 3.6rem;
+    font-weight: 700;
+    color: $primary;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 15px;
+  }
+
+  &__deleteButton {
+    font-size: 1.8rem;
+    font-weight: 600;
+    padding: 10px 20px;
+    color: $white;
+    background-color: $red;
+    border: 1px solid $red;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+
+    &:hover,
+    &:focus {
+      color: $red;
+      background-color: $white;
+    }
+  }
+
+  &__createButton {
+    font-size: 1.8rem;
+    font-weight: 600;
+    padding: 10px 20px;
+    color: $white;
+    background-color: $green;
+    border: 1px solid $green;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+
+    &:hover,
+    &:focus {
+      color: $green;
+      background-color: $white;
+    }
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__label {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: $dark-charcoal;
+  }
+
+  &__input,
+  &__textarea,
+  &__select {
+    font-size: 1.6rem;
+    padding: 10px 15px;
+    border: 1px solid $gray;
+    border-radius: 8px;
+    background-color: $white;
+    transition: border-color 0.3s ease;
+
+    &:focus {
+      border-color: $primary;
+      outline: none;
+    }
+  }
+
+  &__textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+
+  &__select {
+    height: 150px;
+  }
+
+  &__checkboxWrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+  }
+
+  &__fileInput {
+    font-size: 1.6rem;
+    padding: 10px 0;
+  }
+
+  &__imagePreview {
+    margin-bottom: 10px;
+  }
+
+  &__image {
+    max-width: 200px;
+    height: auto;
+    border-radius: 8px;
+    border: 1px solid $gray;
+  }
+
+  &__submitButton {
+    font-size: 1.8rem;
+    font-weight: 600;
+    padding: 12px 25px;
+    color: $white;
+    background-color: $primary;
+    border: 1px solid $primary;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+
+    &:hover,
+    &:focus {
+      color: $primary;
+      background-color: $white;
+    }
+  }
+
+  &__loading {
+    font-size: 2.4rem;
+    text-align: center;
+    color: $primary;
+    padding: 80px 0;
+  }
+
+  @media (max-width: 1199px) {
+    padding: 30px 15px;
+
+    &__title {
+      font-size: 3.2rem;
+    }
+
+    &__deleteButton,
+    &__createButton,
+    &__submitButton {
+      font-size: 1.6rem;
+      padding: 8px 15px;
+    }
+
+    &__label {
+      font-size: 1.6rem;
+    }
+
+    &__input,
+    &__textarea,
+    &__select {
+      font-size: 1.4rem;
+      padding: 8px 12px;
+    }
+
+    &__image {
+      max-width: 150px;
+    }
+
+    &__loading {
+      font-size: 2rem;
+    }
+  }
+
+  @media (max-width: 767px) {
+    padding: 20px 10px;
+
+    &__header {
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    &__title {
+      font-size: 2.8rem;
+      text-align: center;
+    }
+
+    &__actions {
+      justify-content: center;
+    }
+
+    &__deleteButton,
+    &__createButton,
+    &__submitButton {
+      font-size: 1.4rem;
+      padding: 6px 12px;
+      width: 100%;
+      text-align: center;
+    }
+
+    &__label {
+      font-size: 1.4rem;
+    }
+
+    &__input,
+    &__textarea,
+    &__select {
+      font-size: 1.2rem;
+      padding: 6px 10px;
+    }
+
+    &__checkbox {
+      width: 18px;
+      height: 18px;
+    }
+
+    &__image {
+      max-width: 120px;
+    }
+
+    &__loading {
+      font-size: 1.8rem;
+      padding: 60px 0;
+    }
+  }
+
+  @media (max-width: 479px) {
+    &__title {
+      font-size: 2.4rem;
+    }
+
+    &__deleteButton,
+    &__createButton,
+    &__submitButton {
+      font-size: 1.2rem;
+      padding: 5px 10px;
+    }
+
+    &__label {
+      font-size: 1.2rem;
+    }
+
+    &__input,
+    &__textarea,
+    &__select {
+      font-size: 1rem;
+      padding: 5px 8px;
+    }
+
+    &__checkbox {
+      width: 16px;
+      height: 16px;
+    }
+
+    &__image {
+      max-width: 100px;
+    }
+
+    &__loading {
+      font-size: 1.6rem;
+      padding: 40px 0;
+    }
+  }
+}

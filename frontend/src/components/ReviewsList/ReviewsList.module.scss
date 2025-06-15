@@ -1,0 +1,107 @@
+@use "../../scss/variables" as *;
+
+.reviewsList {
+    &__wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    &__title {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 3.6rem;
+        font-weight: 600;
+    }
+
+    &__count {
+        font-size: 1.6rem;
+        font-weight: 300;
+        color: $gray;
+    }
+
+    &__content {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+    }
+
+    &__item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid $bright-gray;
+        background-color: $cultured;
+        transition: all 0.3s ease;
+
+        &:hover {
+            box-shadow: 0 4px 12px rgba($black, 0.1);
+            transform: translateY(-2px);
+        }
+    }
+
+    &__topWrapper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+    }
+
+    &__user {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: $dark-charcoal;
+    }
+
+    &__rating {
+        color: $coquelicot;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    &__time {
+        font-size: 1.2rem;
+        color: $taupe-gray;
+        text-align: right;
+        font-style: italic;
+    }
+
+    @media (max-width: 1199px) {
+        &__content {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        &__user,
+        &__rating {
+            font-size: 1.4rem;
+        }
+    }
+
+    @media (max-width: 767px) {
+        &__topWrapper {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+
+        &__user,
+        &__rating {
+            font-size: 1.2rem;
+        }
+
+        &__date {
+            font-size: 1rem;
+            text-align: left;
+        }
+    }
+
+    @media (max-width: 479px) {
+        &__content {
+            grid-template-columns: 1fr;
+        }
+    }
+}

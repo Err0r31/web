@@ -51,7 +51,9 @@ export default function RecommendedList() {
             image={product.image}
             name={product.name}
             category={product.last_category_name}
-            price={product.total_price}
+            price={product.price}
+            totalPrice={product.total_price}
+            discount={product.discount_percentage}
             id={product.id}
           />
         ))}

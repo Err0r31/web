@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Category, Banner, Product, ProductVariation, Order, OrderItem, Review, ProductCategory, ProductColorImage
+from .models import User, Category, Banner, Product, ProductVariation, Order, OrderItem, Review, ProductCategory, ProductColorImage, CartItem, Cart
 from django.http import HttpResponse
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
@@ -10,6 +10,9 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import os
+from django import forms
+from django.core.exceptions import ValidationError
+
 
 class ProductColorImageInline(admin.TabularInline):
     model = ProductColorImage
@@ -25,6 +28,10 @@ class ProductColorImageInline(admin.TabularInline):
             )
         return "-"
     color_preview.short_description = 'Превью цвета'
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.filter(product__id__isnull=False)
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
@@ -65,12 +72,48 @@ class ProductVariationInline(admin.TabularInline):
         return "-"
     color_preview.short_description = 'Превью цвета'
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.filter(product__id__isnull=False)
+
 class ProductCategoryInline(admin.TabularInline):
     model = ProductCategory
     extra = 1
     raw_id_fields = ['category']
     readonly_fields = ['added_at']
     fields = ['category', 'added_at']
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.filter(product__id__isnull=False)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'category':
+            kwargs['queryset'] = Category.objects.all()
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+class ProductAdminForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        fields = '__all__'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        discount_percentage = cleaned_data.get('discount_percentage')
+        if discount_percentage is not None and (discount_percentage < 0 or discount_percentage > 100):
+            raise ValidationError('Процент скидки должен быть от 0 до 100.')
+        return cleaned_data
+
+class CartItemInline(admin.TabularInline):
+    model = CartItem
+    extra = 1
+    raw_id_fields = ['variation']
+    readonly_fields = ['created_at', 'stock_display']
+    fields = ['variation', 'quantity', 'stock_display', 'created_at']
+
+    def stock_display(self, obj):
+        return obj.variation.stock if obj.variation else "Н/Д"
+    stock_display.short_description = "Доступный запас"
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
@@ -125,19 +168,46 @@ class BannerAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
+    form = ProductAdminForm
     list_display = ['name', 'brand', 'price', 'total_price', 'get_categories', 'is_active', 'is_recommended', 'discount_percentage', 'created_at']
     list_filter = ['is_active', 'is_recommended', 'brand', 'created_at']
-    search_fields = ['name__icontains', 'description__contains', 'brand', 'categories__name']
+    search_fields = ['name__icontains', 'description__contains', 'brand']
     readonly_fields = ['created_at', 'total_price']
     date_hierarchy = 'created_at'
     list_display_links = ['name']
-    inlines = [ProductVariationInline, ProductCategoryInline, ProductColorImageInline]
+    inlines = [ProductVariationInline, ProductColorImageInline, ProductCategoryInline]
     fieldsets = (
         (None, {'fields': ('name', 'description', 'brand', 'price')}),
         ('Изображения', {'fields': ('image',)}),
         ('Скидки и статус', {'fields': ('discount_percentage', 'is_active', 'is_recommended')}),
         ('Мета', {'fields': ('created_at', 'total_price')}),
     )
+
+    def save_model(self, request, obj, form, change):
+        obj.save()
+
+    def save_related(self, request, form, formsets, change):
+        product = form.instance
+        try:
+            for formset in formsets:
+                instances = formset.save(commit=False)
+                for instance in instances:
+                    if formset.model == ProductCategory and not instance.product_id:
+                        instance.product = product
+                    elif formset.model == ProductVariation and not instance.product_id:
+                        instance.product = product
+                    elif formset.model == ProductColorImage and not instance.product_id:
+                        instance.product = product
+                    instance.save()
+                formset.save_m2m()
+            variations = ProductVariation.objects.filter(product=product)
+            for variation in variations:
+                if not ProductColorImage.objects.filter(product=product, color=variation.color).exists():
+                    self.message_user(request, f'Для цвета {variation.color} нет изображений. Добавьте изображение в ProductColorImage.', level='ERROR')
+                    return 
+            super().save_related(request, form, formsets, change)
+        except ValidationError as e:
+            self.message_user(request, f'Ошибка сохранения: {str(e)}', level='ERROR')
 
     def image_preview(self, obj):
         if obj.image:
@@ -179,7 +249,7 @@ class ProductVariationAdmin(admin.ModelAdmin):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ['order_number', 'user_username', 'status', 'get_original_price', 'get_total_price', 'discount_amount', 'order_date']
+    list_display = ['order_number', 'user_username', 'status', 'get_original_price', 'get_total_price', 'discount_amount', 'order_date', 'is_valid_amount']
     list_filter = ['status', 'order_date', 'user']
     search_fields = ['order_number', 'user__username']
     readonly_fields = ['order_number', 'order_date', 'original_price', 'total_price', 'discount_amount']
@@ -207,6 +277,13 @@ class OrderAdmin(admin.ModelAdmin):
         if not obj.pk:
             return "Не рассчитано (сохраните заказ)"
         return obj.total_price
+
+    @admin.display(description='Валидная сумма')
+    def is_valid_amount(self, obj):
+        if not obj.pk:
+            return "Не рассчитано (сохраните заказ)"
+        return "Да" if 500 <= obj.total_price <= 100000 else "Нет"
+    is_valid_amount.short_description = 'Валидная сумма'
 
     @admin.action(description='Сгенерировать PDF-счет для выбранных заказов')
     def generate_invoice_pdf(self, request, queryset):
@@ -285,6 +362,32 @@ class ReviewAdmin(admin.ModelAdmin):
     @admin.display(description='Пользователь')
     def user_username(self, obj):
         return obj.user.username
+    
+    @admin.display(description='Покупал товар')
+    def has_purchased(self, obj):
+        return "Да" if Order.objects.filter(
+            user=obj.user,
+            status='delivered',
+            items__variation__product=obj.product
+        ).exists() else "Нет"
+    has_purchased.short_description = 'Покупал товар'
+
+    @admin.action(description='Проверить валидность отзывов')
+    def check_purchase_validity(self, request, queryset):
+        invalid_reviews = []
+        for review in queryset:
+            has_purchased = Order.objects.filter(
+                user=review.user,
+                status='delivered',
+                items__variation__product=review.product
+            ).exists()
+            if not has_purchased:
+                invalid_reviews.append(f"Отзыв {review.id} от {review.user.username} на {review.product.name}")
+        if invalid_reviews:
+            self.message_user(request, f"Найдены невалидные отзывы: {'; '.join(invalid_reviews)}")
+        else:
+            self.message_user(request, "Все выбранные отзывы валидны.")
+    check_purchase_validity.short_description = 'Проверить валидность отзывов'
 
 @admin.register(ProductCategory)
 class ProductCategoryAdmin(admin.ModelAdmin):
@@ -293,3 +396,40 @@ class ProductCategoryAdmin(admin.ModelAdmin):
     search_fields = ['product__name', 'category__name']
     readonly_fields = ['added_at']
     date_hierarchy = 'added_at'
+
+@admin.register(Cart)
+class CartAdmin(admin.ModelAdmin):
+    list_display = ['user_username', 'created_at', 'item_count']
+    list_filter = ['created_at', 'user']
+    search_fields = ['user__username']
+    readonly_fields = ['created_at']
+    date_hierarchy = 'created_at'
+    inlines = [CartItemInline]
+
+    @admin.display(description='Пользователь')
+    def user_username(self, obj):
+        return obj.user.username if obj.user else "Аноним"
+
+    @admin.display(description='Количество товаров')
+    def item_count(self, obj):
+        return obj.items.count()
+    item_count.short_description = 'Количество товаров'
+
+@admin.register(CartItem)
+class CartItemAdmin(admin.ModelAdmin):
+    list_display = ['cart_user', 'variation', 'quantity', 'stock_display', 'created_at']
+    list_filter = ['created_at', 'variation__product']
+    search_fields = ['cart__user__username', 'cart__session_key', 'variation__product__name']
+    readonly_fields = ['created_at', 'stock_display']
+    date_hierarchy = 'created_at'
+    raw_id_fields = ['cart', 'variation']
+
+    @admin.display(description='Пользователь')
+    def cart_user(self, obj):
+        return obj.cart.user.username if obj.cart.user else f"Сессия {obj.cart.session_key or 'без ключа'}"
+    cart_user.short_description = 'Пользователь'
+
+    @admin.display(description='Доступный запас')
+    def stock_display(self, obj):
+        return obj.variation.stock if obj.variation else "Н/Д"
+    stock_display.short_description = 'Доступный запас'

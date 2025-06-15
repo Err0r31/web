@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
+import React, { useState, useEffect, useRef, useContext } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { PuffLoader } from "react-spinners";
-import { getProduct } from "../../utils/api";
+import { addToCart, getProduct } from "../../utils/api";
 import { useToast } from "../../components/shared/Toast/ToastProvider";
 import { AuthContext } from "../../context/AuthContext";
 import styles from "./ProductPage.module.scss";
@@ -11,17 +11,19 @@ import Reviews from "../../components/Reviews/Reviews";
 
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-
 import Slider from "react-slick";
 
 export default function ProductPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedVariation, setSelectedVariation] = useState(null);
+  const [addingToCart, setAddingToCart] = useState(false);
   const sliderRef = useRef(null);
   const { showToast } = useToast();
 
@@ -60,6 +62,7 @@ export default function ProductPage() {
   const availableColors = [
     ...new Set(product?.variations?.map((v) => v.color) || []),
   ];
+
   const availableSizes = [
     ...new Set(
       product?.variations
@@ -67,6 +70,28 @@ export default function ProductPage() {
         .map((v) => v.size) || []
     ),
   ];
+
+  const handleAddToCart = async () => {
+    if (!selectedVariation) {
+      showToast("Выберите цвет и размер", "error");
+      return;
+    }
+
+    if (selectedVariation.stock === 0) {
+      showToast("Товар недоступен", "error");
+      return;
+    }
+
+    setAddingToCart(true);
+    try {
+      await addToCart(selectedVariation.id, 1);
+      showToast("Товар добавлен в корзину", "success");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAddingToCart(false);
+    }
+  };
 
   const colorImages =
     product?.color_images?.filter((img) => img.color === selectedColor) || [];
@@ -82,8 +107,8 @@ export default function ProductPage() {
     autoplaySpeed: 10000,
     fade: true,
     pauseOnHover: true,
-    arrows: false, 
-    variableWidth: false, // Фиксированная ширина слайдов
+    arrows: false,
+    variableWidth: false,
     centerMode: false,
   };
 
@@ -122,8 +147,16 @@ export default function ProductPage() {
       <Header />
       <main className="content" id="main-content">
         <div className="container">
+          {user?.isAdmin && (
+            <button
+              onClick={() => navigate(`/product/edit/${id}`)}
+              className={styles.product__editButton}
+            >
+              Редактировать
+            </button>
+          )}
           <div className={styles.product}>
-            <div 
+            <div
               className={styles.product__slider}
               role="region"
               aria-label="Галерея изображений товара"
@@ -131,8 +164,8 @@ export default function ProductPage() {
               {colorImages.length > 0 ? (
                 <Slider {...sliderSettings} ref={sliderRef}>
                   {colorImages.map((img, index) => (
-                    <div 
-                      className={styles.product__sliderItem} 
+                    <div
+                      className={styles.product__sliderItem}
                       key={`${img.id}-${index}`}
                       role="group"
                       aria-roledescription="слайд"
@@ -163,34 +196,47 @@ export default function ProductPage() {
             <div className={styles.product__leftSide}>
               <div className={styles.product__details}>
                 <div className={styles.product__textWrapper}>
-                  <p 
+                  <p
                     className={styles.product__rating}
-                    aria-label={`Рейтинг товара: ${product.avg_rating?.toFixed(1) || 0} из 5`}
+                    aria-label={`Рейтинг товара: ${
+                      product.avg_rating?.toFixed(1) || 0
+                    } из 5`}
                   >
                     Рейтинг: {product.avg_rating?.toFixed(1) || 0}
                   </p>
                   <h1 className={styles.product__title}>{product.name}</h1>
                   <p className={styles.product__brand}>{product.brand}</p>
                 </div>
-                <p 
-                  className={styles.product__price}
-                  aria-label={`Цена: ${product.total_price} рублей`}
-                >
-                  {product.total_price} ₽
-                </p>
+                {product.discount_percentage > 0 ? (
+                  <div className={styles.product__discountWrapper}>
+                    <p className={styles.product__oldPrice}>{product.price}</p>
+                    <p className={styles.product__totalPrice}>
+                      {product.total_price} ₽
+                    </p>
+                  </div>
+                ) : (
+                  <p
+                    className={styles.product__price}
+                    aria-label={`Цена: ${product.total_price} рублей`}
+                  >
+                    {product.total_price} ₽
+                  </p>
+                )}
               </div>
-              <div 
+              <div
                 className={styles.variations}
                 role="group"
                 aria-label="Выбор цвета и размера"
               >
-                <div 
+                <div
                   className={styles.variations__group}
                   role="radiogroup"
                   aria-label="Выбор цвета"
                 >
-                  <p className={styles.variations__title} id="color-label">Цвет:</p>
-                  <div 
+                  <p className={styles.variations__title} id="color-label">
+                    Цвет
+                  </p>
+                  <div
                     className={styles.variations__selector}
                     aria-labelledby="color-label"
                   >
@@ -212,13 +258,15 @@ export default function ProductPage() {
                     ))}
                   </div>
                 </div>
-                <div 
+                <div
                   className={styles.variations__group}
                   role="radiogroup"
                   aria-label="Выбор размера"
                 >
-                  <p className={styles.variations__title} id="size-label">Размер:</p>
-                  <div 
+                  <p className={styles.variations__title} id="size-label">
+                    Размер
+                  </p>
+                  <div
                     className={styles.variations__selector}
                     aria-labelledby="size-label"
                   >
@@ -244,22 +292,30 @@ export default function ProductPage() {
               </div>
               <button
                 className={styles.product__button}
-                disabled={!selectedVariation || selectedVariation.stock === 0}
+                onClick={handleAddToCart}
+                disabled={
+                  !selectedVariation ||
+                  selectedVariation.stock === 0 ||
+                  addingToCart
+                }
                 aria-label={
-                  !selectedVariation 
-                    ? "Выберите цвет и размер" 
-                    : selectedVariation.stock === 0 
-                      ? "Нет в наличии" 
-                      : `Добавить ${product.name} в корзину`
+                  !selectedVariation
+                    ? "Выберите цвет и размер"
+                    : selectedVariation.stock === 0
+                    ? "Нет в наличии"
+                    : addingToCart
+                    ? "Добавление в корзину"
+                    : `Добавить ${product.name} в корзину`
                 }
               >
-                {!selectedVariation || selectedVariation.stock === 0 
-                  ? "Нет в наличии" 
-                  : "Добавить в корзину"
-                }
+                {addingToCart
+                  ? "Добавление..."
+                  : !selectedVariation || selectedVariation.stock === 0
+                  ? "Нет в наличии"
+                  : "Добавить в корзину"}
               </button>
             </div>
-            <div 
+            <div
               className={styles.product__descriptionWrapper}
               role="region"
               aria-label="Описание товара"
@@ -269,7 +325,11 @@ export default function ProductPage() {
                 {product.description}
               </div>
             </div>
-            <Reviews productId={id} reviews={product.reviews} setProduct={setProduct} />
+            <Reviews
+              productId={id}
+              reviews={product.reviews}
+              setProduct={setProduct}
+            />
           </div>
         </div>
       </main>
