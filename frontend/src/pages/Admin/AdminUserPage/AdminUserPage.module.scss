@@ -1,0 +1,144 @@
+@use "../../../scss/variables" as *;
+
+.users {
+  padding: 40px 0;
+
+  &__title {
+    font-size: 4.8rem;
+    color: $primary;
+    margin-bottom: 30px;
+    text-align: center;
+  }
+
+  &__tableWrapper {
+    overflow-x: auto;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: $white;
+    font-size: 1.6rem;
+
+    th, td {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 1px solid $cultured;
+    }
+
+    th {
+      background-color: $primary;
+      color: $white;
+      font-weight: 600;
+    }
+
+    tr:hover {
+      background-color: $cultured;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  &__actionButton {
+    padding: 8px 15px;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: $white;
+    background-color: $primary;
+    border: 1px solid $primary;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover,
+    &:focus {
+      color: $primary;
+      background-color: $white;
+    }
+  }
+
+  &__deleteButton {
+    background-color: $coquelicot;
+    border-color: $coquelicot;
+
+    &:hover,
+    &:focus {
+      color: $coquelicot;
+      background-color: $white;
+    }
+  }
+
+  .loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 50vh;
+  }
+
+  .error {
+    font-size: 2.4rem;
+    color: $coquelicot;
+    text-align: center;
+    margin: 50px 0;
+  }
+
+  @media (max-width: 1199px) {
+    &__title {
+      font-size: 3.6rem;
+    }
+
+    &__table {
+      font-size: 1.4rem;
+
+      th, td {
+        padding: 12px;
+      }
+    }
+
+    &__actionButton {
+      padding: 6px 12px;
+      font-size: 1.2rem;
+    }
+  }
+
+  @media (max-width: 767px) {
+    &__title {
+      font-size: 2.8rem;
+    }
+
+    &__table {
+      font-size: 1.2rem;
+
+      th, td {
+        padding: 10px;
+      }
+    }
+
+    &__actionButton {
+      padding: 5px 10px;
+      font-size: 1rem;
+    }
+  }
+
+  @media (max-width: 479px) {
+    &__title {
+      font-size: 2.4rem;
+    }
+
+    &__table {
+      display: block;
+      overflow-x: auto;
+    }
+
+    &__actions {
+      flex-direction: column;
+      gap: 5px;
+    }
+  }
+}

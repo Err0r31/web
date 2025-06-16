@@ -22,7 +22,7 @@ from .models import (
 from .serializers import (
     BannerSerializer, ProductSerializer, OrderSerializer, RegisterSerializer,
     ReviewSerializer, CartSerializer, CartItemSerializer, FavoriteSerializer,
-    ProductVariationSerializer, CategorySerializer
+    ProductVariationSerializer, CategorySerializer, UserSerializer
 )
 
 class RegisterView(generics.CreateAPIView):
@@ -89,16 +89,6 @@ class ProductListViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ['name']
     filterset_class = ProductFilter
     pagination_class = PageNumberPagination
-
-    def get_queryset(self):
-        queryset = super().get_queryset().prefetch_related('categories', 'variations', 'color_images', 'reviews')
-        search_query = self.request.query_params.get('search', None)
-        if search_query:
-            queryset = queryset.filter(name__contains=search_query) 
-        return queryset.annotate(
-            sold_quantity=Sum('variations__sold_quantity'),
-            favorite_count=Count('favorited_by')
-        )
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -269,7 +259,7 @@ class RandomReviewsView(views.APIView):
 
     def get(self, request):
         random_reviews = Review.objects.select_related('product', 'user').order_by('?')[:4]
-        total_reviews = Review.objects.count()
+        total_reviews = Review.objects.aggregate(total=Count('id'))['total']
         serializers = ReviewSerializer(random_reviews, many=True, context={'request': request})
         return Response({
             'reviews': serializers.data,
@@ -302,3 +292,48 @@ class CategoryListView(APIView):
         categories = Category.objects.all().order_by('name')
         serializer = CategorySerializer(categories, many=True)
         return Response(serializer.data)
+    
+class AdminOrderViewSet(viewsets.ModelViewSet):
+    queryset = Order.objects.all().select_related('user').prefetch_related('items')
+    serializer_class = OrderSerializer
+    permission_classes = [IsAdminUser]
+
+    @action(detail=True, methods=['post'])
+    def change_status(self, request, pk=None):
+        order = self.get_object()
+        new_status = request.data.get('status')
+        if new_status not in dict(Order.STATUS_CHOICES):
+            return Response({'error': 'Недопустимый статус.'}, status=status.HTTP_400_BAD_REQUEST)
+        order.status = new_status
+        order.save()
+        return Response({'success': 'Статус обновлен.'}, status=status.HTTP_200_OK)
+
+    
+    @action(detail=True, methods=['post'])
+    def cancel(self, request, pk=None):
+        order = self.get_object()
+        try:
+            order.cancel_order()
+        except ValidationError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'success': 'Заказ отменен.'}, status=status.HTTP_200_OK)
+    
+
+class UserManagementViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAdminUser]
+
+    @action(detail=True, methods=['patch'])
+    def toggle_block(self, request, pk=None):
+        user = self.get_object()
+        user.is_active = request.data.get('is_active', not user.is_active)
+        user.save()
+        return Response({'status': 'User status updated'}, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['patch'])
+    def toggle_admin(self, request, pk=None):
+        user = self.get_object()
+        user.is_staff = request.data.get('is_staff', not user.is_staff)
+        user.save()
+        return Response({'status': 'User role updated'}, status=status.HTTP_200_OK)

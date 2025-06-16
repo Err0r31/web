@@ -121,8 +121,25 @@ api.interceptors.response.use(
 );
 
 export const getBanners = () => api.get("banners/").then((res) => res.data);
+
 export const getRecommendedProducts = () =>
   api.get("random-recommended/").then((res) => res.data);
+export const searchProducts = (query) =>
+  api
+    .get(`products/?search=${encodeURIComponent(query)}`)
+    .then((res) => res.data);
+export const getProduct = (id) =>
+  api.get(`products/${id}/`).then((res) => res.data);
+
+export const createProduct = (productData) =>
+  api.post("admin/products/", productData).then((res) => res.data);
+export const updateProduct = (id, productData) =>
+  api.put(`admin/products/${id}/`, productData).then((res) => res.data);
+export const deleteProduct = (id) =>
+  api.delete(`admin/products/${id}/`).then((res) => res.data);
+export const getCategories = () =>
+  api.get("categories/").then((res) => res.data);
+
 export const login = (username, password) =>
   api.post("login/", { username, password }).then((res) => {
     saveTokens(res.data);
@@ -151,12 +168,7 @@ export const register = (username, email, password, address, phone_number) =>
     .then((res) => res.data);
 export const logout = (refreshToken) =>
   api.post("logout/", { refresh: refreshToken }).then((res) => res.data);
-export const searchProducts = (query) =>
-  api
-    .get(`products/?search=${encodeURIComponent(query)}`)
-    .then((res) => res.data);
-export const getProduct = (id) =>
-  api.get(`products/${id}/`).then((res) => res.data);
+
 export const addReview = (productId, reviewData) =>
   api
     .post(`products/${productId}/reviews/`, reviewData)
@@ -170,15 +182,28 @@ export const deleteReview = (productId, reviewId) =>
     .delete(`products/${productId}/reviews/${reviewId}/`)
     .then((res) => res.data);
 export const randomReview = () =>
-  api.get("random-reviews/").then((res) => res.data);
-export const createProduct = (productData) =>
-  api.post("admin/products/", productData).then((res) => res.data);
-export const updateProduct = (id, productData) =>
-  api.put(`admin/products/${id}/`, productData).then((res) => res.data);
-export const deleteProduct = (id) =>
-  api.delete(`admin/products/${id}/`).then((res) => res.data);
-export const getCategories = () =>
-  api.get("categories/").then((res) => res.data);
+  api.get("/random-reviews/").then((res) => res.data);
+
+export const getOrders = () =>
+  api.get("/admin/orders/").then((res) => res.data);
+export const updateOrderStatus = (orderId, status) =>
+  api
+    .post(`/admin/orders/${orderId}/change_status/`, { status })
+    .then((res) => res.data);
+export const cancelOrder = (orderId) =>
+  api.post(`/admin/orders/${orderId}/cancel/`).then((res) => res.data);
+
+export const getUsers = () => api.get("/admin/users/").then((res) => res.data);
+export const toggleUserBlock = (userId, isActive) =>
+  api
+    .patch(`/admin/users/${userId}/toggle_block/`, { is_active: isActive })
+    .then((res) => res.data);
+export const deleteUser = (userId) =>
+  api.delete(`/admin/users/${userId}/`).then((res) => res.data);
+export const toggleUserAdmin = (userId, isStaff) =>
+  api
+    .patch(`/admin/users/${userId}/toggle_admin/`, { is_staff: isStaff })
+    .then((res) => res.data);
 
 export const getCart = () => {
   const accessToken = getAccessToken();

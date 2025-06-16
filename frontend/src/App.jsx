@@ -9,6 +9,8 @@ import NotFound from "./components/NotFound/NotFound";
 import ProductPage from "./pages/ProductPage/ProductPage";
 import CartPage from "./pages/CartPage/CartPage";
 import ProductEdit from "./components/ProductEdit/ProductEdit";
+import AdminOrderPage from "./pages/Admin/AdminOrderPage/AdminOrderPage";
+import AdminUserPage from "./pages/Admin/AdminUserPage/AdminUserPage";
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
             <Route path="/products/:id" element={<ProductPage />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/product/edit/:id?" element={<ProductEdit />} />
+            <Route path="/admin/orders" element={<AdminOrderPage />} />
+            <Route path="/admin/users" element={<AdminUserPage />}  />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Router>

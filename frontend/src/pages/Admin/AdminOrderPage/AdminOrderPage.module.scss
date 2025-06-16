@@ -1,0 +1,148 @@
+@use "../../../scss/_variables.scss" as *;
+
+.adminOrders {
+    padding: 60px 0;
+
+    &__wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 40px;
+    }
+
+    &__title {
+        font-size: 4rem;
+        font-weight: 700;
+        color: $primary;
+    }
+
+    &__list {
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+    }
+
+    &__item {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        background-color: $white;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        padding: 20px;
+        transition: all 0.3s ease;
+
+        &:hover {
+            transform: translateY(-4px);
+        }
+    }
+
+
+    &__cardHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    &__cardTitle {
+        font-size: 1.125rem;
+        font-weight: 600;
+    }
+
+    &__cardStatus {
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: capitalize;
+
+        &--pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        &--processing {
+            background-color: #cfe2ff;
+            color: #084298;
+        }
+
+        &--shipped {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+
+        &--delivered {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        &--cancelled {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    }
+
+    &__cardDetails {
+        p {
+            margin: 6px 0;
+        }
+    }
+
+    &__actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 20px;
+    }
+
+    &__select {
+        padding: 8px 16px;
+        font-size: 1.8rem;
+        border-radius: 10px;
+        border: 1px solid $primary;
+        background-color: $white;
+        color: $primary;
+        cursor: pointer;
+
+        &:focus {
+            outline: 2px solid $primary;
+        }
+    }
+
+    &__cancel {
+        background-color: $coquelicot;
+        color: $white;
+        font-size: 1.6rem;
+        padding: 10px 20px;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+
+        &:hover,
+        &:focus {
+            background-color: darken($coquelicot, 10%);
+        }
+    }
+
+    @media (max-width: 768px) {
+        &__title {
+            font-size: 3.2rem;
+        }
+
+        &__info {
+            font-size: 1.6rem;
+        }
+
+        &__select {
+            font-size: 1.6rem;
+            padding: 6px 12px;
+        }
+
+        &__cancel {
+            font-size: 1.4rem;
+            padding: 8px 16px;
+        }
+    }
+}

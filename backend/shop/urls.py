@@ -5,7 +5,8 @@ from .views import (
     RegisterView, LoginView, LogoutView, RandomRecommendedProductsView, ProductStatsView,
     BannerViewSet, UserOrdersViewSet, CategoryProductsViewSet,
     ProductListViewSet, ReviewViewSet, CartViewSet, FavoriteViewSet,
-    ProductVariationViewSet, RandomReviewsView, ProductViewSet, CategoryListView
+    ProductVariationViewSet, RandomReviewsView, ProductViewSet, CategoryListView,
+    AdminOrderViewSet, UserManagementViewSet
 )
 
 router = DefaultRouter()
@@ -19,6 +20,8 @@ router.register(r'cart', CartViewSet, basename='cart')
 router.register(r'favorites', FavoriteViewSet, basename='favorite')
 router.register(r'variations', ProductVariationViewSet, basename='variation')
 router.register(r'admin/products', ProductViewSet, basename='admin-product')
+router.register(r'admin/orders', AdminOrderViewSet, basename='admin-orders')
+router.register(r'admin/users', UserManagementViewSet, basename='admin-users')
 
 urlpatterns = [
     path('api/register/', RegisterView.as_view(), name='register'),

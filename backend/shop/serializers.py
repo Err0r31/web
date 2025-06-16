@@ -155,7 +155,6 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         categories_data = validated_data.pop('categories', [])
-        print(f"Creating product with categories: {categories_data}")
         product = Product.objects.create(**validated_data)
         if categories_data:
             product.categories.set(categories_data)
@@ -163,7 +162,6 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         categories_data = validated_data.pop('categories', None)
-        print(f"Updating product with categories: {categories_data}")  # Отладка категорий
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
@@ -236,7 +234,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         variation = data['variation']
-        quantity = data['quantity', 1]
+        quantity = data.get('quantity', 1)
         if not variation.is_available(quantity):
             raise serializers.ValidationError(
                 f'Недостаточно товара {variation.product.name} ({variation.size}, {variation.color}) на складе. '
@@ -324,3 +322,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['is_staff'] = user.is_staff
         token['is_superuser'] = user.is_superuser
         return token
+    
+class UserSerializer(serializers.ModelSerializer):
+    class Meta: 
+        model = User
+        fields = ['id', 'username', 'email', 'is_active', 'is_staff']
