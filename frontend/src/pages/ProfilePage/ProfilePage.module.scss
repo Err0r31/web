@@ -1,0 +1,13 @@
+@use "../../scss/variables" as *;
+
+.profile {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  padding: 20px 0;
+
+  @media (max-width: 1199px) {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+}

@@ -6,13 +6,12 @@ from .views import (
     BannerViewSet, UserOrdersViewSet, CategoryProductsViewSet,
     ProductListViewSet, ReviewViewSet, CartViewSet, FavoriteViewSet,
     ProductVariationViewSet, RandomReviewsView, ProductViewSet, CategoryListView,
-    AdminOrderViewSet, UserManagementViewSet
+    AdminOrderViewSet, UserManagementViewSet, UserProfileView, CreateOrderView
 )
 
 router = DefaultRouter()
 router.register(r'banners', BannerViewSet, basename='banner')
 router.register(r'products', ProductListViewSet, basename='product')
-router.register(r'user/orders', UserOrdersViewSet, basename='order')
 router.register(r'categories/(?P<category_slug>[^/.]+)/products', CategoryProductsViewSet, basename='category-products')
 router.register(r'products/(?P<product_pk>\d+)/reviews', ReviewViewSet, basename='product-reviews')
 router.register(r'reviews', ReviewViewSet, basename='review')
@@ -34,5 +33,8 @@ urlpatterns = [
     path('api/cart/clear/', CartViewSet.as_view({'post': 'clear'}), name='cart-clear'),
     path('api/cart/merge/', CartViewSet.as_view({'post': 'merge_cart'}), name='cart-merge'),
     path('api/categories/', CategoryListView.as_view(), name='category-list'),
+    path('api/profile/', UserProfileView.as_view(), name='user-profile'),
+    path('api/create-order/', CreateOrderView.as_view(), name='create-order'),
+    path('api/user/orders/', UserOrdersViewSet.as_view(), name='user-orders'),
     path('api/', include(router.urls)),
 ]

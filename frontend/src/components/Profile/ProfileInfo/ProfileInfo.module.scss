@@ -1,0 +1,132 @@
+@use "../../../scss/variables" as *;
+
+.profile {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  &__title {
+    font-size: 2.4rem;
+    font-weight: 600;
+    color: $primary;
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  &__text {
+    font-size: 1.6rem;
+    color: $black;
+
+    strong {
+      font-weight: 600;
+      margin-right: 5px;
+    }
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  &__formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  &__label {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: $black;
+  }
+
+  &__input,
+  &__textarea {
+    padding: 10px;
+    font-size: 1.6rem;
+    border: 1px solid $dark-charcoal;
+    border-radius: 5px;
+    transition: border-color 0.3s ease;
+
+    &:focus {
+      border-color: $primary;
+      outline: none;
+    }
+  }
+
+  &__textarea {
+    min-height: 100px;
+    resize: vertical;
+  }
+
+  &__buttonGroup {
+    display: flex;
+    gap: 10px;
+  }
+
+  &__button,
+  &__buttonSecondary {
+    font-size: 1.6rem;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  &__button {
+    background-color: $primary;
+    color: $white;
+    border: 1px solid $primary;
+
+    &:hover,
+    &:focus {
+      background-color: $white;
+      color: $primary;
+    }
+  }
+
+  &__buttonSecondary {
+    background-color: $white;
+    color: $primary;
+    border: 1px solid $primary;
+
+    &:hover,
+    &:focus {
+      background-color: $primary;
+      color: $white;
+    }
+  }
+
+  &__loading,
+  &__error {
+    font-size: 1.6rem;
+    text-align: center;
+    color: $black;
+  }
+
+  @media (max-width: 767px) {
+    &__title {
+      font-size: 2rem;
+      text-align: center;
+    }
+
+    &__text,
+    &__label,
+    &__input,
+    &__textarea {
+      font-size: 1.4rem;
+    }
+
+    &__button,
+    &__buttonSecondary {
+      font-size: 1.4rem;
+      padding: 8px 15px;
+    }
+  }
+}

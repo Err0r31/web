@@ -1,0 +1,46 @@
+@use "../../../scss/variables" as *;
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  border: 1px solid $dark-charcoal;
+  border-radius: 5px;
+  padding: 15px;
+
+  &__title {
+    font-size: 2.4rem;
+    font-weight: 600;
+    color: $primary;
+  }
+
+  &__items {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.4rem;
+    color: $black;
+  }
+
+  &__total {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: $black;
+  }
+
+  @media (max-width: 767px) {
+    &__title {
+      font-size: 2rem;
+    }
+
+    &__item,
+    &__total {
+      font-size: 1.4rem;
+    }
+  }
+}

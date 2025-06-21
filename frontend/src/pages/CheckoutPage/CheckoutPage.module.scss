@@ -1,0 +1,22 @@
+@use "../../scss/variables" as *;
+
+.checkout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  padding: 20px 0;
+
+  &__loading,
+  &__error,
+  &__empty {
+    font-size: 1.6rem;
+    text-align: center;
+    color: $black;
+    padding: 20px;
+  }
+
+  @media (max-width: 1199px) {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+}

@@ -63,13 +63,13 @@ class RandomRecommendedProductsView(views.APIView):
         return Response(serializer.data)
 
 
-class UserOrdersViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = OrderSerializer
+class UserOrdersViewSet(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        return self.request.user.orders.filter(status='delivered').select_related('user')
-
+    def get(self, request):
+        orders = Order.objects.filter(user=request.user).order_by('-order_date')
+        serializer = OrderSerializer(orders, many=True)
+        return Response(serializer.data)
 
 class CategoryProductsViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ProductSerializer
@@ -337,3 +337,43 @@ class UserManagementViewSet(viewsets.ModelViewSet):
         user.is_staff = request.data.get('is_staff', not user.is_staff)
         user.save()
         return Response({'status': 'User role updated'}, status=status.HTTP_200_OK)
+    
+
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
+
+    def patch(self, request):
+        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class CreateOrderView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        cart = Cart.objects.get(user=request.user)
+        if not cart.items.exists():
+            return Response({'error': 'Корзина пуста'}, status=status.HTTP_400_BAD_REQUEST)
+
+        items_data = [
+            {'variation': item.variation, 'quantity': item.quantity}
+            for item in cart.items.all()
+        ]
+        order_data = {
+            'items': items_data,
+            'payment_method': request.data.get('payment_method', 'card'),
+        }
+        serializer = OrderSerializer(data=order_data, context={'request': request})
+        if serializer.is_valid():
+            with transaction.atomic():
+                order = serializer.save()
+                cart.items.all().delete()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -1,0 +1,85 @@
+@use "../../scss/variables" as *;
+
+.categories {
+  &__wrapper {
+    background: $white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+  }
+}
+
+.category {
+  &__subtitle {
+    font-size: 2.4rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+  }
+
+  &__list {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+
+  &__item {
+    margin-bottom: 10px;
+  }
+
+  &__link {
+    font-size: 1.8rem;
+    color: $dark-charcoal;
+    background: none;
+    border: 1px solid $dark-charcoal;
+    border-radius: 5px;
+    padding: 8px 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover,
+    &:focus {
+      color: $white;
+      background: $primary;
+      border-color: $primary;
+    }
+
+    &_active {
+      color: $white;
+      background: $primary;
+      border-color: $primary;
+      font-weight: 600;
+    }
+  }
+
+  &__sublist {
+    list-style: none;
+    padding-left: 20px;
+    margin-top: 5px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  &__subitem {
+    margin-bottom: 5px;
+  }
+
+  @media (max-width: 1199px) {
+    &__subtitle {
+      font-size: 2rem;
+    }
+  }
+
+  @media (max-width: 767px) {
+    &__subtitle {
+      font-size: 1.8rem;
+    }
+
+    &__link {
+      font-size: 1.6rem;
+    }
+  }
+}

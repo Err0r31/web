@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FiHeart, FiUser, FiLogOut, FiShoppingCart } from "react-icons/fi";
+import { CgProfile } from "react-icons/cg";
 import { AuthContext } from "../../context/AuthContext";
 import { useToast } from "../shared/Toast/ToastProvider";
 import { debounce } from "lodash";
@@ -43,7 +44,7 @@ export default function Header() {
   useEffect(() => {
     debouncedSearch(searchQuery);
     return () => debouncedSearch.cancel();
-  }, [searchQuery]);
+  }, [searchQuery, debouncedSearch]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -67,7 +68,7 @@ export default function Header() {
   };
 
   const handleSearchKeyDown = (e) => {
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       setSearchQuery("");
       setSearchResults([]);
       setIsSearchExpanded(false);
@@ -79,7 +80,11 @@ export default function Header() {
       <div className={styles.header__top}>
         <div className="container">
           <div className={styles.header__topWrapper}>
-            <nav className={styles.header__topCategories} role="navigation" aria-label="Основные категории">
+            <nav
+              className={styles.header__topCategories}
+              role="navigation"
+              aria-label="Основные категории"
+            >
               <Link to="/" className={styles.header__topLink}>
                 Мужское
               </Link>
@@ -87,33 +92,67 @@ export default function Header() {
                 Женское
               </Link>
             </nav>
-            <Link to="/" className={styles.header__logo} aria-label="Wearly - На главную">
+            <Link
+              to="/"
+              className={styles.header__logo}
+              aria-label="Wearly - На главную"
+            >
               <span className={styles.header__logoText}>Wearly</span>
               <span className={styles.header__logoSmall}>W</span>
             </Link>
-            <div className={styles.header__functions} role="navigation" aria-label="Пользовательское меню">
-              <Link to="/" className={styles.header__link} aria-label="Избранное">
+            <div
+              className={styles.header__functions}
+              role="navigation"
+              aria-label="Пользовательское меню"
+            >
+              {/* <Link
+                to="/"
+                className={styles.header__link}
+                aria-label="Избранное"
+              >
                 <FiHeart className={styles.header__icon} aria-hidden="true" />
                 <span>Избранное</span>
-              </Link>
+              </Link> */}
               {isAuthenticated ? (
                 <button
                   onClick={handleLogoutClick}
                   className={styles.header__link}
                   aria-label="Выйти из аккаунта"
                 >
-                  <FiLogOut className={styles.header__icon} aria-hidden="true" />
+                  <FiLogOut
+                    className={styles.header__icon}
+                    aria-hidden="true"
+                  />
                   <span>Выйти</span>
                 </button>
               ) : (
-                <Link to="/register" className={styles.header__link} aria-label="Войти в аккаунт">
+                <Link
+                  to="/register"
+                  className={styles.header__link}
+                  aria-label="Войти в аккаунт"
+                >
                   <FiUser className={styles.header__icon} aria-hidden="true" />
                   <span>Войти</span>
                 </Link>
               )}
-              <Link to="/cart" className={styles.header__link} aria-label="Корзина">
-                <FiShoppingCart className={styles.header__icon} aria-hidden="true" />
+              <Link
+                to="/cart"
+                className={styles.header__link}
+                aria-label="Корзина"
+              >
+                <FiShoppingCart
+                  className={styles.header__icon}
+                  aria-hidden="true"
+                />
                 <span>Корзина</span>
+              </Link>
+              <Link
+                to="/profile"
+                className={styles.header__link}
+                aria-label="Профиль"
+              >
+                <CgProfile className={styles.header__icon} aria-hidden="true" />
+                <span>Профиль</span>
               </Link>
             </div>
           </div>
@@ -122,7 +161,11 @@ export default function Header() {
       <div className={styles.header__bottom}>
         <div className="container">
           <div className={styles.header__bottomWrapper}>
-            <nav className={styles.header__nav} role="navigation" aria-label="Категории товаров">
+            <nav
+              className={styles.header__nav}
+              role="navigation"
+              aria-label="Категории товаров"
+            >
               <Link to="/" className={styles.header__bottomLink}>
                 Одежда
               </Link>
@@ -145,8 +188,8 @@ export default function Header() {
                 Скидки %
               </Link>
             </nav>
-            <div 
-              className={styles.header__searchWrapper} 
+            <div
+              className={styles.header__searchWrapper}
               ref={searchRef}
               role="search"
             >
@@ -163,7 +206,10 @@ export default function Header() {
                 aria-describedby={searchError ? "search-error" : undefined}
               />
               {isLoading && (
-                <div className={styles.header__searchLoading} aria-live="polite">
+                <div
+                  className={styles.header__searchLoading}
+                  aria-live="polite"
+                >
                   <PuffLoader color="#3E549D" size={24} />
                   <span className="sr-only">Загрузка результатов...</span>
                 </div>
@@ -193,7 +239,7 @@ export default function Header() {
                 )}
               </AnimatePresence>
               {searchError && (
-                <div 
+                <div
                   id="search-error"
                   className={styles.header__searchError}
                   role="alert"

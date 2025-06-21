@@ -38,6 +38,7 @@ export default function Login({ onLoginSuccess, switchFunc }) {
     try {
       const response = await authLogin(data.username, data.password);
       showToast("Вход выполнен успешно!", "success");
+      console.log("Calling handleLogin with access token:", response.access);
       handleLogin(response.access);
       onLoginSuccess();
     } catch (err) {

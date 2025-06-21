@@ -34,13 +34,13 @@ export default function ProductCard({ image, name, category, price, totalPrice, 
           </h3>
           <p className={styles.productCard__category}>{category}</p>
         </div>
-        <button
+        {/* <Link
           className={styles.productCard__link}
           onClick={() => (window.location.href = `/products/${id}`)}
           aria-label={`Купить ${name}`}
         >
           Купить
-        </button>
+        </Link> */}
       </Link>
     </article>
   );

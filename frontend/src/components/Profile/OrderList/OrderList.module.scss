@@ -1,0 +1,34 @@
+@use "../../../scss/variables" as *;
+
+.orderList {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  &__title {
+    font-size: 2.4rem;
+    font-weight: 600;
+    color: $primary;
+  }
+
+  &__items {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  &__loading,
+  &__error,
+  &__empty {
+    font-size: 1.6rem;
+    text-align: center;
+    color: $black;
+  }
+
+  @media (max-width: 767px) {
+    &__title {
+      font-size: 2rem;
+      text-align: center;
+    }
+  }
+}

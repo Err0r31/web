@@ -231,6 +231,16 @@ class CartSerializer(serializers.ModelSerializer):
 
 class OrderItemSerializer(serializers.ModelSerializer):
     variation = serializers.PrimaryKeyRelatedField(queryset=ProductVariation.objects.all())
+    product_name = serializers.SerializerMethodField()
+    color = serializers.SerializerMethodField()
+    size = serializers.SerializerMethodField()
+
+    def get_product_name(self, obj):
+        return obj.variation.product.name
+    def get_color(self, obj):
+        return obj.variation.color
+    def get_size(self, obj):
+        return obj.variation.size
 
     def validate(self, data):
         variation = data['variation']
@@ -244,12 +254,13 @@ class OrderItemSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = OrderItem
-        fields = ['id', 'variation', 'quantity', 'price', 'created_at']
+        fields = ['id', 'variation', 'product_name', 'color', 'size', 'quantity', 'price', 'created_at']
 
 
 class OrderSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField()
     items = OrderItemSerializer(many=True, required=True)
+    payment_method = serializers.ChoiceField(choices=Order.PAYMENT_METHOD_CHOICES, default='card')
 
     def validate_items(self, items):
         if not items:
@@ -274,8 +285,10 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         items_data = validated_data.pop('items')
+        payment_method = validated_data.pop('payment_method', 'card')
         order = Order.objects.create(
             user=self.context['request'].user,
+            payment_method=payment_method,
             **validated_data,
         )
         for item_data in items_data:
@@ -288,7 +301,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ['id', 'order_number', 'user', 'items', 'status', 'total_price', 'order_date']
+        fields = ['id', 'order_number', 'user', 'items', 'status', 'payment_method', 'total_price', 'order_date']
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -326,4 +339,4 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta: 
         model = User
-        fields = ['id', 'username', 'email', 'is_active', 'is_staff']
+        fields = ['id', 'username', 'full_name', 'email', 'address', 'phone_number', 'is_active', 'is_staff']

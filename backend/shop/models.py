@@ -18,6 +18,7 @@ class ActiveProductManager(models.Manager):
 
 class User(AbstractUser):
     id = models.AutoField(primary_key=True, verbose_name='ID')
+    full_name = models.CharField(max_length=50, blank=True, null=True, verbose_name='ФИО')
     address = models.TextField(blank=True, null=True, verbose_name='Адрес')
     phone_number = models.CharField(max_length=15, blank=True, null=True, verbose_name='Номер телефона')
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
@@ -229,11 +230,17 @@ class Order(models.Model):
         ('delivered', 'Доставлен'),
         ('cancelled', 'Отменён'),
     )
+    PAYMENT_METHOD_CHOICES = (
+        ('card', 'Картой'),
+        ('sbp', 'СБП'),
+        ('cash', 'наличными'),
+    )
 
     id = models.AutoField(primary_key=True, verbose_name='ID')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders', verbose_name='Пользователь')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name='Статус')
     order_date = models.DateTimeField(default=timezone.now, verbose_name='Дата заказа')
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='card', verbose_name='Способ оплаты')
     discount_amount = models.IntegerField(default=0, verbose_name='Сумма скидки', editable=False)
     original_price = models.IntegerField(default=0, verbose_name='Цена без скидки', editable=False)
     total_price = models.IntegerField(default=0, verbose_name='Итоговая цена', editable=False)

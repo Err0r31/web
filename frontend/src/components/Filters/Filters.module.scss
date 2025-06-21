@@ -1,0 +1,128 @@
+@use "../../scss/variables" as *;
+
+.filters {
+  &__sidebar {
+    background: $white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  &__title {
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+  }
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 15px;
+  }
+
+  &__label {
+    font-size: 1.6rem;
+    color: $dark-charcoal;
+  }
+
+  &__input {
+    padding: 8px;
+    border: 1px solid $dark-charcoal;
+    border-radius: 5px;
+    font-size: 1.6rem;
+  }
+
+  &__select {
+    padding: 8px;
+    border: 1px solid $dark-charcoal;
+    border-radius: 5px;
+    font-size: 1.6rem;
+    background: $white;
+  }
+
+  &__checkboxGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.6rem;
+    cursor: pointer;
+  }
+
+  &__colorBox {
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    border: 1px solid $dark-charcoal;
+  }
+
+  &__buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  &__applyButton {
+    font-size: 1.6rem;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: $primary;
+    color: $white;
+    border: 1px solid $primary;
+
+    &:hover {
+      background: $white;
+      color: $primary;
+    }
+  }
+
+  &__clearButton {
+    font-size: 1.6rem;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: $white;
+    color: $dark-charcoal;
+    border: 1px solid $dark-charcoal;
+
+    &:hover {
+      background: $dark-charcoal;
+      color: $white;
+    }
+  }
+
+  @media (max-width: 767px) {
+    &__title {
+      font-size: 1.8rem;
+    }
+
+    &__label,
+    &__input,
+    &__select,
+    &__checkboxLabel {
+      font-size: 1.4rem;
+    }
+  }
+
+  @media (max-width: 479px) {
+    &__checkboxGroup {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    &__colorBox {
+      width: 15px;
+      height: 15px;
+    }
+  }
+}

@@ -1,16 +1,12 @@
 import { login, register, logout } from "./api";
 
 export function saveTokens({ access, refresh }) {
-  if (access && refresh) {
-    localStorage.setItem("access_token", access);
-    localStorage.setItem("refresh_token", refresh);
-    console.log("Tokens saved:", {
-      access: access.substring(0, 10) + "...",
-      refresh: refresh.substring(0, 10) + "...",
-    });
-  } else {
-    console.error("Invalid tokens received:", { access, refresh });
+  if (!access || !refresh) {
+    console.error("Invalid tokens:", { access, refresh });
+    throw new Error("Токены не получены");
   }
+  localStorage.setItem("access_token", access);
+  localStorage.setItem("refresh_token", refresh);
 };
 
 export const getAccessToken = () => {
@@ -51,7 +47,6 @@ export async function authRegister(
 export async function authLogin(username, password) {
   try {
     const data = await login(username, password);
-    saveTokens(data);
     return data;
   } catch (error) {
     const errorData = error.response?.data || { message: "Ошибка входа" };

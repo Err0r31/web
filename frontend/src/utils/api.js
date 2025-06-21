@@ -54,7 +54,8 @@ api.interceptors.response.use(
       error.response?.status === 401 &&
       !originalRequest._retry &&
       !originalRequest.url.includes("login/") &&
-      !originalRequest.url.includes("refresh/")
+      !originalRequest.url.includes("refresh/") &&
+      !originalRequest.url.includes("logout/")
     ) {
       originalRequest._retry = true;
       try {
@@ -73,6 +74,7 @@ api.interceptors.response.use(
           throw new Error("Invalid refresh response");
         }
         saveTokens(newTokens);
+
         console.log("Token refreshed successfully");
         originalRequest.headers.Authorization = `Bearer ${newTokens.access}`;
         if (originalRequest.url.includes("cart/")) {
@@ -125,26 +127,36 @@ export const getBanners = () => api.get("banners/").then((res) => res.data);
 export const getRecommendedProducts = () =>
   api.get("random-recommended/").then((res) => res.data);
 export const searchProducts = (query) =>
-  api
-    .get(`products/?search=${encodeURIComponent(query)}`)
-    .then((res) => res.data);
+  api.get(`products/?search=${query}`).then((res) => res.data);
 export const getProduct = (id) =>
   api.get(`products/${id}/`).then((res) => res.data);
-
+export const getFilteredProduct = (query) =>
+  api.get(`products/?${query}`).then((res) => res.data);
 export const createProduct = (productData) =>
   api.post("admin/products/", productData).then((res) => res.data);
 export const updateProduct = (id, productData) =>
   api.put(`admin/products/${id}/`, productData).then((res) => res.data);
 export const deleteProduct = (id) =>
   api.delete(`admin/products/${id}/`).then((res) => res.data);
+
 export const getCategories = () =>
   api.get("categories/").then((res) => res.data);
+export const getCategoryProducts = (categorySlug, query = "") =>
+  api
+    .get(`categories/${categorySlug}/products/${query ? `?${query}` : ""}`)
+    .then((res) => ({ results: res.data, count: res.data.length }));
 
 export const login = (username, password) =>
   api.post("login/", { username, password }).then((res) => {
-    saveTokens(res.data);
+    const tokens = res.data;
+
+    if (!tokens.access || !tokens.refresh) {
+      throw new Error("Получены некорректные токены.");
+    }
+
+    saveTokens(tokens);
+
     const localCart = JSON.parse(localStorage.getItem("cart") || "{}");
-    console.log("Local cart before sync:", localCart);
     if (localCart.items?.length > 0) {
       return api
         .post("cart/merge/", { items: localCart.items })
@@ -152,15 +164,15 @@ export const login = (username, password) =>
           console.log("Cart merged:", res.data);
           localStorage.setItem("cart", JSON.stringify(res.data));
           showToast("Корзина синхронизирована", "success");
-          return res.data;
+          return { ...tokens, cart: res.data };
         })
         .catch((err) => {
           console.error("Cart merge failed:", err);
           showToast("Ошибка синхронизации корзины", "error");
-          throw err;
+          return { ...tokens, cartError: err.message }
         });
     }
-    return res.data;
+    return tokens;
   });
 export const register = (username, email, password, address, phone_number) =>
   api
@@ -184,6 +196,8 @@ export const deleteReview = (productId, reviewId) =>
 export const randomReview = () =>
   api.get("/random-reviews/").then((res) => res.data);
 
+export const getUserOrders = () =>
+  api.get("/user/orders/").then((res) => res.data);
 export const getOrders = () =>
   api.get("/admin/orders/").then((res) => res.data);
 export const updateOrderStatus = (orderId, status) =>
@@ -192,7 +206,15 @@ export const updateOrderStatus = (orderId, status) =>
     .then((res) => res.data);
 export const cancelOrder = (orderId) =>
   api.post(`/admin/orders/${orderId}/cancel/`).then((res) => res.data);
+export const createOrder = (paymentMethod) =>
+  api.post("create-order/", { payment_method: paymentMethod }).then((res) => {
+    localStorage.removeItem("cart");
+    return res.data;
+  });
 
+export const getUserProfile = () => api.get("profile/").then((res) => res.data);
+export const updateUserProfile = (userData) =>
+  api.patch("profile/", userData).then((res) => res.data);
 export const getUsers = () => api.get("/admin/users/").then((res) => res.data);
 export const toggleUserBlock = (userId, isActive) =>
   api
@@ -205,7 +227,7 @@ export const toggleUserAdmin = (userId, isStaff) =>
     .patch(`/admin/users/${userId}/toggle_admin/`, { is_staff: isStaff })
     .then((res) => res.data);
 
-export const getCart = () => {
+export const getCart = async () => {
   const accessToken = getAccessToken();
   if (!accessToken) {
     const localCart = JSON.parse(localStorage.getItem("cart") || "{}");

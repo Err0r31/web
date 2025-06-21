@@ -117,16 +117,16 @@ class CartItemInline(admin.TabularInline):
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ['username', 'email', 'address', 'phone_number', 'created_at', 'is_active']
+    list_display = ['username', 'full_name', 'email', 'address', 'phone_number', 'created_at', 'is_active']
     list_filter = ['is_active', 'created_at', 'groups']
-    search_fields = ['username', 'email', 'address', 'phone_number']
+    search_fields = ['username', 'full_name', 'email', 'address', 'phone_number']
     readonly_fields = ['created_at']
     date_hierarchy = 'created_at'
-    list_display_links = ['username', 'email']
+    list_display_links = ['username', 'full_name', 'email']
     filter_horizontal = ['groups', 'user_permissions']
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
-        ('Персональная информация', {'fields': ('first_name', 'last_name', 'email', 'address', 'phone_number')}),
+        ('Персональная информация', {'fields': ('full_name', 'email', 'address', 'phone_number')}),
         ('Права доступа', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Даты', {'fields': ('last_login', 'date_joined', 'created_at')}),
     )
@@ -249,15 +249,15 @@ class ProductVariationAdmin(admin.ModelAdmin):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ['order_number', 'user_username', 'status', 'get_original_price', 'get_total_price', 'discount_amount', 'order_date', 'is_valid_amount']
-    list_filter = ['status', 'order_date', 'user']
-    search_fields = ['order_number', 'user__username']
+    list_display = ['order_number', 'user_username', 'status', 'payment_method', 'get_original_price', 'get_total_price', 'discount_amount', 'order_date', 'is_valid_amount']
+    list_filter = ['status', 'payment_method', 'order_date', 'user']
+    search_fields = ['order_number', 'user__username', 'user__full_name']
     readonly_fields = ['order_number', 'order_date', 'original_price', 'total_price', 'discount_amount']
     date_hierarchy = 'order_date'
     list_display_links = ['order_number']
     inlines = [OrderItemInline]
     raw_id_fields = ['user']
-    fields = ['user', 'status', 'order_number', 'order_date', 'original_price', 'total_price', 'discount_amount']
+    fields = ['user', 'status', 'payment_method', 'order_number', 'order_date', 'original_price', 'total_price', 'discount_amount']
     actions = ['generate_invoice_pdf']
 
     @admin.display(description='Пользователь')
@@ -302,6 +302,7 @@ class OrderAdmin(admin.ModelAdmin):
                 ['Пользователь', order.user.username],
                 ['Дата', order.order_date.strftime('%Y-%m-%d %H:%M')],
                 ['Статус', order.get_status_display()],
+                ['Способ оплаты', order.get_payment_method_display()],
                 ['Товары', ''],
                 ['Название', 'Количество', 'Цена за единицу', 'Итого'],
             ]
@@ -317,7 +318,7 @@ class OrderAdmin(admin.ModelAdmin):
 
             table = Table(data)
             table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 3), colors.grey),
+                ('BACKGROUND', (0, 0), (-1, 4), colors.grey),
                 ('TEXTCOLOR', (0, 0), (-1, 3), colors.whitesmoke),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans'),

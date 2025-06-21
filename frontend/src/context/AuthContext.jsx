@@ -35,6 +35,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const handleLogin = (token) => {
+    console.log("handleLogin called with token:", token);
     updateUserFromToken(token);
   };
 
