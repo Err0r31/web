@@ -24,6 +24,7 @@ from .serializers import (
     ReviewSerializer, CartSerializer, CartItemSerializer, FavoriteSerializer,
     ProductVariationSerializer, CategorySerializer, UserSerializer
 )
+from typing import Any
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -38,7 +39,14 @@ class LoginView(TokenObtainPairView):
 class LogoutView(views.APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
+    def post(self, request: Any) -> Response:
+        """
+        Завершает сессию пользователя, делая refresh-токен невалидным.
+        Args:
+            request: объект запроса
+        Returns:
+            Response: статус операции
+        """
         try:
             refresh_token = request.data["refresh"]
             token = RefreshToken(refresh_token)
@@ -57,7 +65,14 @@ class BannerViewSet(viewsets.ReadOnlyModelViewSet):
 class RandomRecommendedProductsView(views.APIView):
     permission_classes = [AllowAny]
 
-    def get(self, request):
+    def get(self, request: Any) -> Response:
+        """
+        Возвращает случайные рекомендованные продукты.
+        Args:
+            request: объект запроса
+        Returns:
+            Response: список продуктов
+        """
         recommended_products = Product.objects.filter(is_recommended=True).exclude(is_active=False).order_by('?')[:6]
         serializer = ProductSerializer(recommended_products, many=True, context={'request': request})
         return Response(serializer.data)
@@ -66,7 +81,14 @@ class RandomRecommendedProductsView(views.APIView):
 class UserOrdersViewSet(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request: Any) -> Response:
+        """
+        Возвращает список заказов пользователя.
+        Args:
+            request: объект запроса
+        Returns:
+            Response: список заказов
+        """
         orders = Order.objects.filter(user=request.user).order_by('-order_date')
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
@@ -76,10 +98,17 @@ class CategoryProductsViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [AllowAny]
     pagination_class = PageNumberPagination
 
-    def get_queryset(self):
+    def get_queryset(self) -> Any:
+        """
+        Возвращает QuerySet продуктов для категории и её потомков.
+        Returns:
+            QuerySet: продукты
+        """
         category_slug = self.kwargs['category_slug']
-        category = get_object_or_404(Category, slug=category_slug)
-        return Product.active_objects.filter(categories=category)
+        gender = self.request.query_params.get('gender', 'male')
+        category = get_object_or_404(Category, slug=category_slug, gender=gender)
+        descendant_ids = category.get_descendants_ids()
+        return Product.active_objects.filter(categories__id__in=descendant_ids).distinct()
 
 
 class ProductListViewSet(viewsets.ReadOnlyModelViewSet):
@@ -90,7 +119,14 @@ class ProductListViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_class = ProductFilter
     pagination_class = PageNumberPagination
 
-    def retrieve(self, request, *args, **kwargs):
+    def retrieve(self, request: Any, *args: Any, **kwargs: Any) -> Response:
+        """
+        Возвращает подробную информацию о продукте с дополнительной статистикой.
+        Args:
+            request: объект запроса
+        Returns:
+            Response: данные продукта
+        """
         instance = self.get_object()
         instance = Product.active_objects.prefetch_related('categories', 'reviews', 'variations', 'color_images').annotate(
             sold_quantity=Sum('variations__sold_quantity'),
@@ -109,12 +145,24 @@ class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
+    def get_queryset(self) -> Any:
+        """
+        Возвращает QuerySet отзывов для пользователя (если update/delete), иначе все.
+        Returns:
+            QuerySet: отзывы
+        """
         if self.action in ['update', 'partial_update', 'destroy']:
             return Review.objects.filter(user=self.request.user).select_related('product', 'user')
         return super().get_queryset()
 
-    def perform_create(self, serializer):
+    def perform_create(self, serializer: Any) -> None:
+        """
+        Сохраняет отзыв, связывая с продуктом и пользователем.
+        Args:
+            serializer: сериализатор
+        Raises:
+            ValidationError: если отзыв уже существует
+        """
         try:
             product_id = self.kwargs.get('product_pk')
             product = get_object_or_404(Product, pk=product_id)
@@ -128,7 +176,14 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class ProductStatsView(views.APIView):
     permission_classes = [AllowAny]
 
-    def get(self, request):
+    def get(self, request: Any) -> Response:
+        """
+        Возвращает статистику по продуктам и заказам.
+        Args:
+            request: объект запроса
+        Returns:
+            Response: статистика
+        """
         data = {
             'active_products': Product.objects.filter(is_active=True).count(),
             'has_recommended': Product.objects.filter(is_recommended=True).exists(),
@@ -144,23 +199,51 @@ class ProductStatsView(views.APIView):
 class CartViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
-    def get_cart(self, request):
+    def get_cart(self, request: Any) -> Cart:
+        """
+        Получает или создаёт корзину для пользователя.
+        Args:
+            request: объект запроса
+        Returns:
+            Cart: корзина пользователя
+        """
         cart, _ = Cart.objects.get_or_create(user=request.user)
         return cart
 
-    def list(self, request):
+    def list(self, request: Any) -> Response:
+        """
+        Возвращает содержимое корзины пользователя.
+        Args:
+            request: объект запроса
+        Returns:
+            Response: сериализованные данные корзины
+        """
         cart = self.get_cart(request)
         serializer = CartSerializer(cart, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=False, methods=['post'])
-    def clear(self, request):
+    def clear(self, request: Any) -> Response:
+        """
+        Очищает корзину пользователя.
+        Args:
+            request: объект запроса
+        Returns:
+            Response: статус
+        """
         cart = self.get_cart(request)
         cart.items.all().delete()
         return Response({'status': 'Корзина очищена'}, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['post'])
-    def merge_cart(self, request):
+    def merge_cart(self, request: Any) -> Response:
+        """
+        Объединяет локальные товары с корзиной пользователя.
+        Args:
+            request: объект запроса
+        Returns:
+            Response: сериализованные данные корзины
+        """
         cart = self.get_cart(request)
         local_cart_items = request.data.get('items', [])
         
@@ -197,7 +280,14 @@ class CartViewSet(viewsets.ViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @method_decorator(csrf_exempt)
-    def create(self, request):
+    def create(self, request: Any) -> Response:
+        """
+        Добавляет товар в корзину пользователя.
+        Args:
+            request: объект запроса
+        Returns:
+            Response: сериализованные данные корзины
+        """
         cart = self.get_cart(request)
         serializer = CartItemSerializer(data=request.data, context={'cart': cart})
         if serializer.is_valid():
@@ -206,7 +296,15 @@ class CartViewSet(viewsets.ViewSet):
             return Response(cart_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def update(self, request, pk=None):
+    def update(self, request: Any, pk: Any = None) -> Response:
+        """
+        Обновляет количество товара в корзине.
+        Args:
+            request: объект запроса
+            pk: id элемента корзины
+        Returns:
+            Response: сериализованные данные корзины
+        """
         try:
             cart = self.get_cart(request)
             item = cart.items.get(id=pk)
@@ -222,7 +320,15 @@ class CartViewSet(viewsets.ViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-    def destroy(self, request, pk=None):
+    def destroy(self, request: Any, pk: Any = None) -> Response:
+        """
+        Удаляет товар из корзины.
+        Args:
+            request: объект запроса
+            pk: id элемента корзины
+        Returns:
+            Response: сериализованные данные корзины
+        """
         try:
             cart = self.get_cart(request)
             item = cart.items.get(id=pk)
@@ -241,10 +347,20 @@ class FavoriteViewSet(viewsets.ModelViewSet):
     serializer_class = FavoriteSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
+    def get_queryset(self) -> Any:
+        """
+        Возвращает QuerySet избранного пользователя.
+        Returns:
+            QuerySet: избранное
+        """
         return Favorite.objects.filter(user=self.request.user).select_related('product')
     
-    def perform_create(self, serializer):
+    def perform_create(self, serializer: Any) -> None:
+        """
+        Добавляет товар в избранное пользователя.
+        Args:
+            serializer: сериализатор
+        """
         serializer.save(user=self.request.user)
 
 
@@ -257,7 +373,14 @@ class ProductVariationViewSet(viewsets.ReadOnlyModelViewSet):
 class RandomReviewsView(views.APIView):
     permission_classes = [AllowAny]
 
-    def get(self, request):
+    def get(self, request: Any) -> Response:
+        """
+        Возвращает случайные отзывы.
+        Args:
+            request: объект запроса
+        Returns:
+            Response: отзывы
+        """
         random_reviews = Review.objects.select_related('product', 'user').order_by('?')[:4]
         total_reviews = Review.objects.aggregate(total=Count('id'))['total']
         serializers = ReviewSerializer(random_reviews, many=True, context={'request': request})
@@ -272,24 +395,52 @@ class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
     permission_classes = [IsAdminUser]
 
-    def get_serializer_context(self):
+    def get_serializer_context(self) -> dict:
+        """
+        Возвращает контекст сериализатора (request).
+        Returns:
+            dict: контекст
+        """
         return {'request': self.request}
 
-    def perform_create(self, serializer):
+    def perform_create(self, serializer: Any) -> None:
+        """
+        Создаёт продукт.
+        Args:
+            serializer: сериализатор
+        """
         serializer.save()
 
-    def perform_update(self, serializer):
+    def perform_update(self, serializer: Any) -> None:
+        """
+        Обновляет продукт.
+        Args:
+            serializer: сериализатор
+        """
         serializer.save()
 
-    def perform_destroy(self, instance):
+    def perform_destroy(self, instance: Any) -> None:
+        """
+        Удаляет продукт.
+        Args:
+            instance: продукт
+        """
         instance.delete()
 
 
 class CategoryListView(APIView):
     permission_classes = [AllowAny]
 
-    def get(self, request):
-        categories = Category.objects.all().order_by('name')
+    def get(self, request: Any) -> Response:
+        """
+        Возвращает список категорий по полу.
+        Args:
+            request: объект запроса
+        Returns:
+            Response: категории
+        """
+        gender = request.query_params.get('gender', 'male')
+        categories = Category.objects.filter(gender=gender).order_by('name')
         serializer = CategorySerializer(categories, many=True)
         return Response(serializer.data)
     
@@ -299,7 +450,15 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminUser]
 
     @action(detail=True, methods=['post'])
-    def change_status(self, request, pk=None):
+    def change_status(self, request: Any, pk: Any = None) -> Response:
+        """
+        Меняет статус заказа.
+        Args:
+            request: объект запроса
+            pk: id заказа
+        Returns:
+            Response: статус
+        """
         order = self.get_object()
         new_status = request.data.get('status')
         if new_status not in dict(Order.STATUS_CHOICES):
@@ -310,7 +469,15 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
 
     
     @action(detail=True, methods=['post'])
-    def cancel(self, request, pk=None):
+    def cancel(self, request: Any, pk: Any = None) -> Response:
+        """
+        Отменяет заказ.
+        Args:
+            request: объект запроса
+            pk: id заказа
+        Returns:
+            Response: статус
+        """
         order = self.get_object()
         try:
             order.cancel_order()
@@ -325,14 +492,30 @@ class UserManagementViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminUser]
 
     @action(detail=True, methods=['patch'])
-    def toggle_block(self, request, pk=None):
+    def toggle_block(self, request: Any, pk: Any = None) -> Response:
+        """
+        Блокирует или разблокирует пользователя.
+        Args:
+            request: объект запроса
+            pk: id пользователя
+        Returns:
+            Response: статус
+        """
         user = self.get_object()
         user.is_active = request.data.get('is_active', not user.is_active)
         user.save()
         return Response({'status': 'User status updated'}, status=status.HTTP_200_OK)
     
     @action(detail=True, methods=['patch'])
-    def toggle_admin(self, request, pk=None):
+    def toggle_admin(self, request: Any, pk: Any = None) -> Response:
+        """
+        Делает пользователя админом или снимает права.
+        Args:
+            request: объект запроса
+            pk: id пользователя
+        Returns:
+            Response: статус
+        """
         user = self.get_object()
         user.is_staff = request.data.get('is_staff', not user.is_staff)
         user.save()
@@ -342,11 +525,25 @@ class UserManagementViewSet(viewsets.ModelViewSet):
 class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request: Any) -> Response:
+        """
+        Возвращает профиль пользователя.
+        Args:
+            request: объект запроса
+        Returns:
+            Response: данные пользователя
+        """
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
 
-    def patch(self, request):
+    def patch(self, request: Any) -> Response:
+        """
+        Обновляет профиль пользователя.
+        Args:
+            request: объект запроса
+        Returns:
+            Response: обновлённые данные или ошибки
+        """
         serializer = UserSerializer(request.user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -357,13 +554,20 @@ class UserProfileView(APIView):
 class CreateOrderView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
+    def post(self, request: Any) -> Response:
+        """
+        Создаёт заказ из корзины пользователя.
+        Args:
+            request: объект запроса
+        Returns:
+            Response: сериализованные данные заказа или ошибки
+        """
         cart = Cart.objects.get(user=request.user)
         if not cart.items.exists():
             return Response({'error': 'Корзина пуста'}, status=status.HTTP_400_BAD_REQUEST)
 
         items_data = [
-            {'variation': item.variation, 'quantity': item.quantity}
+            {'variation': item.variation.id, 'quantity': item.quantity}
             for item in cart.items.all()
         ]
         order_data = {

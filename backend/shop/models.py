@@ -7,13 +7,24 @@ from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils.text import slugify
 import re
+from typing import Any, Optional, List
 
 class ActiveOrderManager(models.Manager):
-    def get_queryset(self):
+    def get_queryset(self) -> models.QuerySet:
+        """
+        Возвращает QuerySet только с активными заказами (pending, processing, shipped).
+        Returns:
+            QuerySet: Активные заказы
+        """
         return super().get_queryset().filter(status__in=['pending', 'processing', 'shipped'])
 
 class ActiveProductManager(models.Manager):
-    def get_queryset(self):
+    def get_queryset(self) -> models.QuerySet:
+        """
+        Возвращает QuerySet только с активными продуктами.
+        Returns:
+            QuerySet: Активные продукты
+        """
         return super().get_queryset().filter(is_active=True)
 
 class User(AbstractUser):
@@ -23,7 +34,12 @@ class User(AbstractUser):
     phone_number = models.CharField(max_length=15, blank=True, null=True, verbose_name='Номер телефона')
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """
+        Возвращает строковое представление пользователя (username).
+        Returns:
+            str: username пользователя
+        """
         return self.username
 
     class Meta:
@@ -31,8 +47,15 @@ class User(AbstractUser):
         verbose_name_plural = 'Пользователи'
 
 class Category(models.Model):
+    GENDER_CHOICES = (
+        ('male', 'Мужское'),
+        ('female', 'Женское'),
+        ('unisex', 'Унисекс'),
+    )
+
     id = models.AutoField(primary_key=True, verbose_name='ID')
     name = models.CharField(max_length=100, verbose_name='Название')
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='male')
     slug = models.SlugField(max_length=100, unique=True, verbose_name='Слаг', blank=True)
     parent = models.ForeignKey(
         'self',
@@ -44,17 +67,49 @@ class Category(models.Model):
     )
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
 
-    def get_path(self):
+    def get_path(self) -> str:
+        """
+        Возвращает путь категории с учётом родителей.
+        Returns:
+            str: путь категории
+        """
         if self.parent:
             return f"{self.parent.get_path()}/{self.name}"
         return self.name
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        """
+        Сохраняет категорию, автоматически создавая slug, если он не задан.
+        """
         if not self.slug:
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
-    def __str__(self):
+    def get_descendants_ids(self) -> List[int]:
+        """
+        Рекурсивно возвращает список id всех потомков (включая себя).
+        Returns:
+            List[int]: id потомков
+        """
+        ids = [self.id]
+        for sub in self.subcategories.all():
+            ids.extend(sub.get_descendants_ids())
+        return ids
+    
+    def is_leaf(self) -> bool:
+        """
+        Проверяет, является ли категория листом (не имеет подкатегорий).
+        Returns:
+            bool: True если нет подкатегорий
+        """
+        return not self.subcategories.exists()
+
+    def __str__(self) -> str:
+        """
+        Возвращает строковое представление категории (name).
+        Returns:
+            str: название категории
+        """
         return self.name
 
     class Meta:
@@ -71,7 +126,12 @@ class Banner(models.Model):
     image = models.ImageField(upload_to='banner/', blank=True, null=True, verbose_name='Изображение')
     link = models.URLField(max_length=200, blank=True, null=True, verbose_name='Ссылка для перехода')
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """
+        Возвращает строковое представление баннера (title).
+        Returns:
+            str: название баннера
+        """
         return self.title
 
     class Meta:
@@ -89,7 +149,12 @@ class ProductCategory(models.Model):
         verbose_name_plural = 'Связи продукт-категория'
         unique_together = ('product', 'category')
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """
+        Возвращает строковое представление связи продукт-категория.
+        Returns:
+            str: строка вида 'product в category'
+        """
         return f"{self.product.name} в {self.category.name}"
 
 class Product(models.Model):
@@ -109,23 +174,46 @@ class Product(models.Model):
     objects = models.Manager()
     active_objects = ActiveProductManager()
 
-    def clean(self):
+    def clean(self) -> None:
+        """
+        Проверяет валидность процента скидки.
+        Raises:
+            ValidationError: если процент скидки вне диапазона 0-100
+        """
         if self.discount_percentage < 0 or self.discount_percentage > 100:
             raise ValidationError('Процент скидки должен быть от 0 до 100.')
 
-    def get_final_price(self):
+    def get_final_price(self) -> int:
+        """
+        Возвращает цену с учётом скидки.
+        Returns:
+            int: итоговая цена
+        """
         discount_amount = (self.price * self.discount_percentage) // 100
         return self.price - discount_amount
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        """
+        Сохраняет продукт, обновляя итоговую цену.
+        """
         self.clean()
         self.total_price = self.get_final_price()
         super().save(*args, **kwargs)
 
-    def get_absolute_url(self):
+    def get_absolute_url(self) -> str:
+        """
+        Возвращает абсолютный URL продукта.
+        Returns:
+            str: URL продукта
+        """
         return reverse('product-detail', kwargs={'pk': self.pk})
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """
+        Возвращает строковое представление продукта (name или id).
+        Returns:
+            str: название продукта или 'Продукт <id>'
+        """
         return self.name or f"Продукт {self.id}"
 
     class Meta:
@@ -144,43 +232,84 @@ class ProductVariation(models.Model):
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
     stock = models.PositiveIntegerField(default=0, editable=False, verbose_name='Доступный запас')
 
-    def clean(self):
+    def clean(self) -> None:
+        """
+        Проверяет валидность цвета и наличие изображения для цвета.
+        Raises:
+            ValidationError: если цвет не HEX или нет изображения
+        """
         if not re.match(r'^#[0-9a-fA-F]{6}$', self.color):
             raise ValidationError('Цвет должен быть в формате HEX, например, #ffffff.')
         self.color = self.color.lower()
         if self.pk and self.product.pk and not ProductColorImage.objects.filter(product=self.product, color=self.color).exists():
             raise ValidationError(f'Для цвета {self.color} нет изображений. Добавьте изображение в ProductColorImage.')
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        """
+        Сохраняет вариацию продукта, обновляя запас.
+        """
         self.clean()
         self.available_stock = self.available_stock or 0
         self.reserved_quantity = self.reserved_quantity or 0
         self.stock = self.available_stock - self.reserved_quantity
         super().save(*args, **kwargs)
 
-    def is_available(self, quantity=1):
+    def is_available(self, quantity: int = 1) -> bool:
+        """
+        Проверяет, доступно ли нужное количество товара.
+        Args:
+            quantity: требуемое количество
+        Returns:
+            bool: True если доступно
+        """
         return (self.stock or 0) >= quantity
 
-    def reserve_stock(self, quantity):
+    def reserve_stock(self, quantity: int) -> None:
+        """
+        Резервирует запас для вариации.
+        Args:
+            quantity: количество для резервации
+        Raises:
+            ValidationError: если недостаточно запаса
+        """
         if not self.is_available(quantity):
             raise ValidationError(f'Недостаточно запаса для {self}.')
         self.reserved_quantity += quantity
         self.save()
 
-    def confirm_sale(self, quantity):
+    def confirm_sale(self, quantity: int) -> None:
+        """
+        Подтверждает продажу, уменьшает резерв, увеличивает проданное.
+        Args:
+            quantity: количество
+        Raises:
+            ValidationError: если резерв меньше количества
+        """
         if self.reserved_quantity < quantity:
             raise ValidationError(f'Нельзя подтвердить больше, чем зарезервировано для {self}.')
         self.reserved_quantity -= quantity
         self.sold_quantity += quantity
         self.save()
 
-    def cancel_reservation(self, quantity):
+    def cancel_reservation(self, quantity: int) -> None:
+        """
+        Отменяет резерв.
+        Args:
+            quantity: количество
+        Raises:
+            ValidationError: если резерв меньше количества
+        """
         if self.reserved_quantity < quantity:
             raise ValidationError(f'Нельзя отменить больше, чем зарезервировано для {self}.')
         self.reserved_quantity -= quantity
         self.save()
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """
+        Возвращает строковое представление вариации продукта.
+        Returns:
+            str: строка вида 'product - size - color (Доступно: stock)'
+        """
         return f"{self.product.name} - {self.size} - {self.color} (Доступно: {self.stock})"
 
     class Meta:
@@ -201,18 +330,31 @@ class ProductColorImage(models.Model):
     image = models.ImageField(upload_to='product_colors/images/', verbose_name='Изображение')
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
 
-    def clean(self):
+    def clean(self) -> None:
+        """
+        Проверяет валидность цвета и ограничение по количеству изображений.
+        Raises:
+            ValidationError: если цвет не HEX или превышен лимит изображений
+        """
         if not re.match(r'^#[0-9a-fA-F]{6}$', self.color):
             raise ValidationError('Цвет должен быть в формате HEX, например, #ffffff.')
         self.color = self.color.lower()
         if self.pk is None and self.product.pk:
             if ProductColorImage.objects.filter(product=self.product, color=self.color).count() >= 5:
                 raise ValidationError('Максимум 5 изображений для одного цвета.')
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        """
+        Сохраняет изображение цвета продукта.
+        """
         self.clean()
         super().save(*args, **kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """
+        Возвращает строковое представление изображения цвета продукта.
+        Returns:
+            str: строка вида 'Изображение для product (color)'
+        """
         return f"Изображение для {self.product.name} ({self.color})"
 
     class Meta:
@@ -250,18 +392,28 @@ class Order(models.Model):
     objects = models.Manager()
     active_orders = ActiveOrderManager()
 
-    def calculate_prices(self):
+    def calculate_prices(self) -> None:
+        """
+        Пересчитывает итоговые суммы заказа.
+        """
         self.original_price = sum(item.price * item.quantity for item in self.items.all())
         self.total_price = sum(item.variation.product.total_price * item.quantity for item in self.items.all())
         self.discount_amount = self.original_price - self.total_price
 
-    def save(self, *args, **kwargs):
-        if not self.pk:
-            super().save(*args, **kwargs)
-        self.calculate_prices()
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        """
+        Сохраняет заказ и пересчитывает итоговые суммы.
+        """
         super().save(*args, **kwargs)
+        self.calculate_prices()
+        super().save(update_fields=['discount_amount', 'original_price', 'total_price'])
 
-    def confirm_delivery(self):
+    def confirm_delivery(self) -> None:
+        """
+        Подтверждает доставку заказа, переводит статус и подтверждает продажу вариаций.
+        Raises:
+            ValidationError: если статус заказа не 'shipped'
+        """
         if self.status != 'shipped':
             raise ValidationError('Заказ должен быть в статусе "Отправлен" для подтверждения доставки.')
         for item in self.items.all():
@@ -269,7 +421,12 @@ class Order(models.Model):
         self.status = 'delivered'
         self.save()
 
-    def cancel_order(self):
+    def cancel_order(self) -> None:
+        """
+        Отменяет заказ, возвращает резерв на склад.
+        Raises:
+            ValidationError: если заказ уже доставлен или отменён
+        """
         if self.status in ['delivered', 'cancelled']:
             raise ValidationError('Нельзя отменить доставленный или уже отменённый заказ.')
         for item in self.items.all():
@@ -277,7 +434,12 @@ class Order(models.Model):
         self.status = 'cancelled'
         self.save()
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """
+        Возвращает строковое представление заказа.
+        Returns:
+            str: строка вида 'Заказ <order_number> от <username>'
+        """
         return f"Заказ {self.order_number} от {self.user.username}"
 
     class Meta:
@@ -293,11 +455,19 @@ class OrderItem(models.Model):
     quantity = models.PositiveIntegerField(verbose_name='Количество')
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
 
-    def clean(self):
+    def clean(self) -> None:
+        """
+        Проверяет, достаточно ли запаса для вариации.
+        Raises:
+            ValidationError: если недостаточно запаса
+        """
         if not self.variation.is_available(self.quantity):
             raise ValidationError(f'Недостаточно запаса для {self.variation}.')
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        """
+        Сохраняет элемент заказа, резервирует запас и обновляет цену.
+        """
         self.clean()
         if not self.pk:
             if not self.variation or not self.variation.product:
@@ -307,13 +477,21 @@ class OrderItem(models.Model):
         super().save(*args, **kwargs)
         self.order.save()
 
-    def delete(self, *args, **kwargs):
+    def delete(self, *args: Any, **kwargs: Any) -> None:
+        """
+        Удаляет элемент заказа, отменяет резерв.
+        """
         if self.pk:
             self.variation.cancel_reservation(self.quantity)
         super().delete(*args, **kwargs)
         self.order.save()
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """
+        Возвращает строковое представление элемента заказа.
+        Returns:
+            str: строка вида '<variation> x <quantity> в заказе <order_number>'
+        """
         return f"{self.variation} x {self.quantity} в заказе {self.order.order_number}"
 
     class Meta:
@@ -328,7 +506,12 @@ class Review(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """
+        Возвращает строковое представление отзыва.
+        Returns:
+            str: строка вида 'Отзыв от <username> для <product>'
+        """
         return f"Отзыв от {self.user.username} для {self.product.name}"
 
     class Meta:
@@ -344,10 +527,20 @@ class Cart(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def get_total_price(self):
+    def get_total_price(self) -> int:
+        """
+        Возвращает итоговую сумму корзины.
+        Returns:
+            int: итоговая сумма
+        """
         return sum(item.variation.product.total_price * item.quantity for item in self.items.all())
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """
+        Возвращает строковое представление корзины.
+        Returns:
+            str: строка вида 'Корзина пользователя <username>'
+        """
         return f"Корзина {'пользователя ' + self.user.username}"
     
     class Meta:
@@ -363,15 +556,28 @@ class CartItem(models.Model):
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
 
-    def clean(self):
+    def clean(self) -> None:
+        """
+        Проверяет, достаточно ли запаса для вариации в корзине.
+        Raises:
+            ValidationError: если недостаточно запаса
+        """
         if not self.variation.is_available(self.quantity):
             raise ValidationError(f'Недостаточно запаса для {self.variation}. Доступно: {self.variation.stock}.')
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        """
+        Сохраняет элемент корзины, проверяя запас.
+        """
         self.clean()
         super().save(*args, **kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """
+        Возвращает строковое представление элемента корзины.
+        Returns:
+            str: строка вида '<variation> x <quantity> в корзине'
+        """
         return f"{self.variation} x {self.quantity} в корзине"
 
     class Meta:
@@ -384,7 +590,12 @@ class Favorite(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='favorited_by', verbose_name='Продукт')
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата добавления')
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """
+        Возвращает строковое представление избранного.
+        Returns:
+            str: строка вида '<username> добавил <product> в избранное'
+        """
         return f"{self.user.username} добавил {self.product.name} в избранное"
     
     class Meta:

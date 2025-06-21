@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getProduct, createProduct, updateProduct, deleteProduct, getCategories } from '../../utils/api';
+import { useGender } from '../../context/GenderContext';
 import Header from '../Header/Header';
 import Footer from '../Footer/Footer';
 import { showToast } from '../../utils/toast';
@@ -24,11 +25,12 @@ const ProductEdit = () => {
   const [currentImage, setCurrentImage] = useState(null); 
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(isEditMode);
+  const { gender } = useGender();
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const data = await getCategories();
+        const data = await getCategories(gender);
         setCategories(data);
       } catch (err) {
         console.error('Category fetch error:', err);

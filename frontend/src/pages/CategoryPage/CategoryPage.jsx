@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { PuffLoader } from "react-spinners";
 import { getCategories, getFilteredProduct } from "../../utils/api";
 import { useToast } from "../../components/shared/Toast/ToastProvider";
@@ -9,6 +9,7 @@ import ProductCard from "../../components/ProductCard/ProductCard.jsx";
 import Filters from "../../components/Filters/Filters.jsx";
 import CategoryList from "../../components/CategoryList/CategoryList.jsx";
 import styles from "./CategoryPage.module.scss";
+import { useGender } from "../../context/GenderContext.jsx";
 
 export default function CategoryPage() {
   const { categorySlug } = useParams();
@@ -32,15 +33,26 @@ export default function CategoryPage() {
   const [availableColors, setAvailableColors] = useState([]);
   const [availableBrands, setAvailableBrands] = useState([]);
   const { showToast } = useToast();
+  const { gender } = useGender();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (categories.length > 0 && categorySlug) {
+      const exists = categories.some((cat) => cat.slug === categorySlug);
+      if (!exists) {
+        navigate(`/category/${categories[0].slug}`);
+      }
+    }
+  }, [gender, categories, categorySlug, navigate])
 
   useEffect(() => {
     const fetchCategoriesAndFilters = async () => {
       try {
         setLoading(true);
-        const categoriesData = await getCategories();
+        const categoriesData = await getCategories(gender);
         setCategories(categoriesData);
 
-        const productsData = await getFilteredProduct(`category=${categorySlug}`);
+        const productsData = await getFilteredProduct(`category=${categorySlug}&gender=${gender}`);
         if (productsData) {
           const sizes = [
             ...new Set(
@@ -71,7 +83,7 @@ export default function CategoryPage() {
     };
 
     fetchCategoriesAndFilters();
-  }, [categorySlug, showToast]);
+  }, [categorySlug, showToast, gender]);
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -142,6 +154,20 @@ export default function CategoryPage() {
 
   const currentCategory = categories.find((cat) => cat.slug === categorySlug);
 
+  function findTopCategory(cat) {
+    if (!cat) return null;
+    let current = cat;
+    while (current.parent) {
+      current = categories.find((c) => c.id === current.parent);
+    }
+    return current;
+  }
+  const topCategory = findTopCategory(currentCategory);
+
+  const filteredCategories = topCategory
+    ? categories.filter((cat) => cat.parent === topCategory.id)
+    : [];
+
   if (loading) {
     return (
       <div className={styles.container}>
@@ -172,7 +198,7 @@ export default function CategoryPage() {
               {currentCategory ? currentCategory.name : "Категория"}
             </h1>
             <CategoryList
-              categories={categories}
+              categories={filteredCategories}
               currentCategorySlug={categorySlug}
             />
             <div className={styles.category__wrapper}>

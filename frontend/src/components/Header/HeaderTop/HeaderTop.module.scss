@@ -1,0 +1,65 @@
+@use "../../../scss/variables" as *;
+
+.header {
+    &__top {
+        background-color: $primary;
+    }
+
+    &__topWrapper {
+        display: grid;
+        align-items: center;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 80px;
+        padding: 15px 0;
+    }
+
+    &__logo {
+        font-size: 4.8rem;
+        font-family: $ff-title;
+        margin: 0 auto;
+        color: $white;
+        transition: all 0.3s ease;
+
+        &:hover,
+        &:focus {
+            transform: scale(1.05);
+        }
+    }
+
+    &__logoSmall {
+        display: none;
+    }
+
+    @media (max-width: 1199px) {
+        &__topWrapper {
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+        }
+
+        &__logo {
+            font-size: 4rem;
+        }
+    }
+
+    @media (max-width: 767px) {
+        &__topWrapper {
+            display: flex;
+            gap: 20px;
+            text-align: center;
+            justify-content: space-between;
+        }
+
+        &__logo {
+            margin: 0;
+        }
+
+        &__logoText {
+            display: none;
+        }
+
+        &__logoSmall {
+            display: block;
+            font-size: 24px;
+        }
+    }
+}

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../../shared/Toast/ToastProvider";
-import { getUserProfile, createOrder } from "../../../utils/api";
-import { AuthContext } from "../../../context/AuthContext";
+import { getUserProfile, createOrder, getCart } from "../../../utils/api";
 import styles from "./CheckoutForm.module.scss";
 
 export default function CheckoutForm() {
@@ -14,21 +13,26 @@ export default function CheckoutForm() {
     phone_number: "",
     payment_method: "card",
   });
+  const [cart, setCart] = useState({ items: [], total_price: 0 }); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const data = await getUserProfile();
+        const [profileData, cartData] = await Promise.all([
+          getUserProfile(),
+          getCart(),
+        ]);
         setFormData({
-          full_name: data.full_name || "",
-          address: data.address || "",
-          phone_number: data.phone_number || "",
+          full_name: profileData.full_name || "",
+          address: profileData.address || "",
+          phone_number: profileData.phone_number || "",
           payment_method: "card",
         });
+        setCart(cartData);
       } catch (err) {
         setError(err.message || "Ошибка загрузки данных");
         showToast("Ошибка загрузки данных", "error");
@@ -36,7 +40,7 @@ export default function CheckoutForm() {
         setLoading(false);
       }
     };
-    fetchProfile();
+    fetchData();
   }, [showToast]);
 
   const handleInputChange = (e) => {
@@ -48,7 +52,15 @@ export default function CheckoutForm() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await createOrder(formData.payment_method);
+      const itemsData = cart.items.map((item) => ({
+        variation: item.variation.id,
+        quantity: item.quantity,
+      }));
+      const orderData = {
+        items: itemsData,
+        payment_method: formData.payment_method,
+      };
+      await createOrder(orderData);
       showToast("Заказ успешно оформлен", "success");
       navigate("/profile");
     } catch (err) {
@@ -134,7 +146,7 @@ export default function CheckoutForm() {
                 onChange={handleInputChange}
               />
               СБП
-            </label>
+  </label>
             <label className={styles.checkout__radio}>
               <input
                 type="radio"

@@ -139,8 +139,8 @@ export const updateProduct = (id, productData) =>
 export const deleteProduct = (id) =>
   api.delete(`admin/products/${id}/`).then((res) => res.data);
 
-export const getCategories = () =>
-  api.get("categories/").then((res) => res.data);
+export const getCategories = (gender = "male") =>
+  api.get(`categories/?gender=${gender}`).then((res) => res.data);
 export const getCategoryProducts = (categorySlug, query = "") =>
   api
     .get(`categories/${categorySlug}/products/${query ? `?${query}` : ""}`)
@@ -206,8 +206,8 @@ export const updateOrderStatus = (orderId, status) =>
     .then((res) => res.data);
 export const cancelOrder = (orderId) =>
   api.post(`/admin/orders/${orderId}/cancel/`).then((res) => res.data);
-export const createOrder = (paymentMethod) =>
-  api.post("create-order/", { payment_method: paymentMethod }).then((res) => {
+export const createOrder = (orderData) =>
+  api.post("create-order/", orderData).then((res) => {
     localStorage.removeItem("cart");
     return res.data;
   });

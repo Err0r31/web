@@ -2,29 +2,79 @@ from rest_framework import serializers
 from .models import Banner, Product, Order, Category, User, Review, ProductVariation, ProductColorImage, OrderItem, CartItem, Cart, Favorite
 import re
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from typing import Any, Optional
 
 class CategorySerializer(serializers.ModelSerializer):
     path = serializers.SerializerMethodField()
+    subcategories = serializers.SerializerMethodField()
+    is_leaf = serializers.SerializerMethodField()
 
     class Meta:
         model = Category
-        fields = ['id', 'name', 'slug', 'path']
+        fields = ['id', 'name', 'slug', 'gender', 'parent', 'subcategories', 'is_leaf', 'path']
 
-    def get_path(self, obj):
+    def get_subcategories(self, obj: Category) -> list:
+        """
+        Возвращает сериализованные подкатегории.
+        Args:
+            obj: Объект категории
+        Returns:
+            list: Список подкатегорий
+        """
+        if obj.subcategories.exists():
+            return CategorySerializer(obj.subcategories.all(), many=True).data
+        return []
+
+    def get_is_leaf(self, obj: Category) -> bool:
+        """
+        Проверяет, является ли категория листом.
+        Args:
+            obj: Объект категории
+        Returns:
+            bool: True если нет подкатегорий
+        """
+        return not obj.subcategories.exists()
+
+    def get_path(self, obj: Category) -> str:
+        """
+        Возвращает путь категории.
+        Args:
+            obj: Объект категории
+        Returns:
+            str: путь
+        """
         return obj.get_path()
-
+    
 
 class ReviewSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True)
     user_id = serializers.IntegerField(source='user.id', read_only=True)
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
 
-    def validate_rating(self, value):
+    def validate_rating(self, value: int) -> int:
+        """
+        Проверяет, что рейтинг в диапазоне 1-5.
+        Args:
+            value: рейтинг
+        Returns:
+            int: рейтинг
+        Raises:
+            ValidationError: если рейтинг вне диапазона
+        """
         if not 1 <= value <= 5:
             raise serializers.ValidationError("Рейтинг должен быть от 1 до 5.")
         return value
 
-    def validate(self, data):
+    def validate(self, data: dict) -> dict:
+        """
+        Проверяет, что пользователь может оставить отзыв только если покупал товар и не оставлял отзыв ранее.
+        Args:
+            data: данные отзыва
+        Returns:
+            dict: данные отзыва
+        Raises:
+            ValidationError: если условия не выполнены
+        """
         product = data.get('product')
         request = self.context.get('request')
         user = request.user
@@ -46,7 +96,16 @@ class ReviewSerializer(serializers.ModelSerializer):
                 })
         return data
 
-    def validate_product(self, value):
+    def validate_product(self, value: Product) -> Product:
+        """
+        Проверяет, что продукт существует.
+        Args:
+            value: продукт
+        Returns:
+            Product: продукт
+        Raises:
+            ValidationError: если продукт не найден
+        """
         if not Product.objects.filter(id=value.id).exists():
             raise serializers.ValidationError("Продукт не существует.")
         return value
@@ -59,12 +118,28 @@ class ReviewSerializer(serializers.ModelSerializer):
 class ProductColorImageSerializer(serializers.ModelSerializer):
     image = serializers.ImageField(use_url=True)
 
-    def validate_color(self, value):
+    def validate_color(self, value: str) -> str:
+        """
+        Проверяет, что цвет в формате HEX.
+        Args:
+            value: строка цвета
+        Returns:
+            str: цвет в нижнем регистре
+        Raises:
+            ValidationError: если цвет не HEX
+        """
         if not re.match(r'^#[0-9a-fA-F]{6}$', value):
             raise serializers.ValidationError('Цвет должен быть в формате HEX, например, #ffffff.')
         return value.lower()
 
-    def to_representation(self, instance):
+    def to_representation(self, instance: ProductColorImage) -> dict:
+        """
+        Возвращает сериализованное представление изображения цвета.
+        Args:
+            instance: объект ProductColorImage
+        Returns:
+            dict: сериализованные данные
+        """
         data = super().to_representation(instance)
         request = self.context.get('request')
         if request and data['image']:
@@ -78,7 +153,14 @@ class ProductColorImageSerializer(serializers.ModelSerializer):
 
 class MinimalProductSerializer(serializers.ModelSerializer):
 
-    def to_representation(self, instance):
+    def to_representation(self, instance: Product) -> dict:
+        """
+        Возвращает сериализованное представление продукта с абсолютным URL изображения.
+        Args:
+            instance: объект Product
+        Returns:
+            dict: сериализованные данные
+        """
         data = super().to_representation(instance)
         request = self.context.get('request')
         if request and data['image']:
@@ -93,7 +175,16 @@ class MinimalProductSerializer(serializers.ModelSerializer):
 class ProductVariationSerializer(serializers.ModelSerializer):
     product = MinimalProductSerializer(read_only=True)
 
-    def validate_color(self, value):
+    def validate_color(self, value: str) -> str:
+        """
+        Проверяет, что цвет в формате HEX и есть изображение для цвета.
+        Args:
+            value: строка цвета
+        Returns:
+            str: цвет в нижнем регистре
+        Raises:
+            ValidationError: если цвет не HEX или нет изображения
+        """
         if not re.match(r'^#[0-9a-fA-F]{6}$', value):
             raise serializers.ValidationError('Цвет должен быть в формате HEX, например, #ffffff.')
         value = value.lower()
@@ -122,17 +213,38 @@ class ProductSerializer(serializers.ModelSerializer):
     sold_quantity = serializers.IntegerField(read_only=True, source='sold_quantity__sum')
     favorite_count = serializers.IntegerField(read_only=True, source='favorite_count__count')
 
-    def get_last_category_name(self, obj):
+    def get_last_category_name(self, obj: Product) -> str:
+        """
+        Возвращает название последней категории продукта.
+        Args:
+            obj: объект продукта
+        Returns:
+            str: название категории
+        """
         last_category = obj.categories.last()
         return last_category.name if last_category else ""
 
-    def get_is_favorited(self, obj):
+    def get_is_favorited(self, obj: Product) -> bool:
+        """
+        Проверяет, добавлен ли продукт в избранное текущим пользователем.
+        Args:
+            obj: объект продукта
+        Returns:
+            bool: True если в избранном
+        """
         user = self.context.get('request').user
         if user.is_authenticated:
             return Favorite.objects.filter(user=user, product=obj).exists()
         return False
 
-    def to_representation(self, instance):
+    def to_representation(self, instance: Product) -> dict:
+        """
+        Возвращает сериализованное представление продукта с абсолютным URL изображения и категориями.
+        Args:
+            instance: объект Product
+        Returns:
+            dict: сериализованные данные
+        """
         data = super().to_representation(instance)
         request = self.context.get('request')
         if request and data['image']:
@@ -140,27 +252,60 @@ class ProductSerializer(serializers.ModelSerializer):
         data['categories'] = CategorySerializer(instance.categories.all(), many=True).data
         return data
 
-    def validate_image(self, value):
+    def validate_image(self, value: Any) -> Any:
+        """
+        Проверяет, что файл изображения валиден.
+        Args:
+            value: файл изображения
+        Returns:
+            файл изображения
+        Raises:
+            ValidationError: если файл не изображение
+        """
         if value:
             print(f"Received image: {value.name}, size: {value.size}, content_type: {value.content_type}")
             if not value.content_type.startswith('image/'):
                 raise serializers.ValidationError("Загруженный файл не является изображением.")
         return value
 
-    def validate(self, data):
+    def validate(self, data: dict) -> dict:
+        """
+        Проверяет, что выбрана хотя бы одна категория.
+        Args:
+            data: данные продукта
+        Returns:
+            dict: данные продукта
+        Raises:
+            ValidationError: если не выбрана категория
+        """
         print(f"Validated data: {data}") 
         if not data.get('categories'):
             raise serializers.ValidationError({'categories': 'Выберите хотя бы одну категорию.'})
         return data
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict) -> Product:
+        """
+        Создаёт продукт и связывает с категориями.
+        Args:
+            validated_data: данные продукта
+        Returns:
+            Product: созданный продукт
+        """
         categories_data = validated_data.pop('categories', [])
         product = Product.objects.create(**validated_data)
         if categories_data:
             product.categories.set(categories_data)
         return product
 
-    def update(self, instance, validated_data):
+    def update(self, instance: Product, validated_data: dict) -> Product:
+        """
+        Обновляет продукт и его категории.
+        Args:
+            instance: продукт
+            validated_data: новые данные
+        Returns:
+            Product: обновлённый продукт
+        """
         categories_data = validated_data.pop('categories', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -255,6 +400,10 @@ class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
         fields = ['id', 'variation', 'product_name', 'color', 'size', 'quantity', 'price', 'created_at']
+        read_only_fields = ['id']
+        extra_kwargs = {
+            'price': {'required': False},
+        }
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -302,6 +451,7 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['id', 'order_number', 'user', 'items', 'status', 'payment_method', 'total_price', 'order_date']
+        read_only_fields = ['id']
 
 
 class RegisterSerializer(serializers.ModelSerializer):

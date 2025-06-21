@@ -1,0 +1,59 @@
+@use "../../../scss/variables" as *;
+
+.header {
+    &__topCategories {
+        display: flex;
+        align-items: center;
+        gap: 40px;
+        flex-wrap: wrap;
+    }
+
+    &__topLink {
+        position: relative;
+        color: $white;
+
+        &::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -2px;
+            width: 0;
+            height: 1px;
+            background-color: $white;
+            transition: width 0.3s ease-in-out;
+        }
+
+        &:hover::after {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 1199px) {
+        &__topCategories {
+            gap: 20px;
+        }
+    }
+
+    @media (max-width: 767px) {
+        &__topCategories {
+            display: none;
+        }
+
+        &__topLink {
+            font-size: 1.4rem;
+        }
+    }
+}
+
+.active {
+    &::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: -2px;
+        width: 100%;
+        height: 1px;
+        background-color: $white;
+        transition: width 0.3s ease-in-out;
+    }
+}

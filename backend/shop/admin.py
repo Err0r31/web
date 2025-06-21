@@ -12,6 +12,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 import os
 from django import forms
 from django.core.exceptions import ValidationError
+from typing import Any, Optional
 
 
 class ProductColorImageInline(admin.TabularInline):
@@ -20,7 +21,14 @@ class ProductColorImageInline(admin.TabularInline):
     readonly_fields = ['created_at', 'color_preview']
     fields = ['color', 'color_preview', 'image', 'created_at']
 
-    def color_preview(self, obj):
+    def color_preview(self, obj: ProductColorImage) -> str:
+        """
+        Возвращает HTML-превью цвета.
+        Args:
+            obj: объект ProductColorImage
+        Returns:
+            str: HTML-код превью
+        """
         if obj.color:
             return format_html(
                 '<div style="width: 30px; height: 30px; background-color: {}; border: 1px solid #000;"></div>',
@@ -29,7 +37,14 @@ class ProductColorImageInline(admin.TabularInline):
         return "-"
     color_preview.short_description = 'Превью цвета'
 
-    def get_queryset(self, request):
+    def get_queryset(self, request: Any) -> Any:
+        """
+        Возвращает QuerySet только с изображениями, у которых есть продукт.
+        Args:
+            request: объект запроса
+        Returns:
+            QuerySet
+        """
         qs = super().get_queryset(request)
         return qs.filter(product__id__isnull=False)
 
@@ -40,17 +55,40 @@ class OrderItemInline(admin.TabularInline):
     readonly_fields = ['created_at', 'price_display']
     fields = ['variation', 'quantity', 'price_display', 'created_at']
 
-    def get_readonly_fields(self, request, obj=None):
+    def get_readonly_fields(self, request: Any, obj: Optional[Any] = None) -> list:
+        """
+        Возвращает список только для чтения полей.
+        Args:
+            request: объект запроса
+            obj: объект заказа
+        Returns:
+            list: список полей
+        """
         if obj:
             return self.readonly_fields + ['variation', 'quantity']
         return self.readonly_fields
 
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+    def formfield_for_foreignkey(self, db_field: Any, request: Any, **kwargs: Any) -> Any:
+        """
+        Ограничивает выбор вариаций только теми, у которых есть запас.
+        Args:
+            db_field: поле foreign key
+            request: объект запроса
+        Returns:
+            formfield
+        """
         if db_field.name == 'variation':
             kwargs['queryset'] = ProductVariation.objects.filter(stock__gte=1)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
-    def price_display(self, obj):
+    def price_display(self, obj: OrderItem) -> Any:
+        """
+        Возвращает цену за единицу для OrderItem.
+        Args:
+            obj: OrderItem
+        Returns:
+            цена или строка
+        """
         if obj.variation and not obj.price:
             return obj.variation.product.price
         return obj.price or "Не установлено"
@@ -63,7 +101,14 @@ class ProductVariationInline(admin.TabularInline):
     readonly_fields = ['created_at', 'stock']
     fields = ['size', 'color', 'available_stock', 'reserved_quantity', 'sold_quantity', 'stock', 'created_at']
 
-    def color_preview(self, obj):
+    def color_preview(self, obj: ProductVariation) -> str:
+        """
+        Возвращает HTML-превью цвета вариации.
+        Args:
+            obj: ProductVariation
+        Returns:
+            str: HTML-код превью
+        """
         if obj.color:
             return format_html(
                 '<div style="width: 30px; height: 30px; background-color: {}; border: 1px solid #000;"></div>',
@@ -72,7 +117,14 @@ class ProductVariationInline(admin.TabularInline):
         return "-"
     color_preview.short_description = 'Превью цвета'
 
-    def get_queryset(self, request):
+    def get_queryset(self, request: Any) -> Any:
+        """
+        Возвращает QuerySet только с вариациями, у которых есть продукт.
+        Args:
+            request: объект запроса
+        Returns:
+            QuerySet
+        """
         qs = super().get_queryset(request)
         return qs.filter(product__id__isnull=False)
 
@@ -83,11 +135,26 @@ class ProductCategoryInline(admin.TabularInline):
     readonly_fields = ['added_at']
     fields = ['category', 'added_at']
 
-    def get_queryset(self, request):
+    def get_queryset(self, request: Any) -> Any:
+        """
+        Возвращает QuerySet только с категориями, у которых есть продукт.
+        Args:
+            request: объект запроса
+        Returns:
+            QuerySet
+        """
         qs = super().get_queryset(request)
         return qs.filter(product__id__isnull=False)
 
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+    def formfield_for_foreignkey(self, db_field: Any, request: Any, **kwargs: Any) -> Any:
+        """
+        Ограничивает выбор категорий всеми категориями.
+        Args:
+            db_field: поле foreign key
+            request: объект запроса
+        Returns:
+            formfield
+        """
         if db_field.name == 'category':
             kwargs['queryset'] = Category.objects.all()
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
@@ -97,7 +164,14 @@ class ProductAdminForm(forms.ModelForm):
         model = Product
         fields = '__all__'
 
-    def clean(self):
+    def clean(self) -> dict:
+        """
+        Проверяет валидность процента скидки.
+        Returns:
+            dict: очищенные данные
+        Raises:
+            ValidationError: если процент скидки вне диапазона 0-100
+        """
         cleaned_data = super().clean()
         discount_percentage = cleaned_data.get('discount_percentage')
         if discount_percentage is not None and (discount_percentage < 0 or discount_percentage > 100):
@@ -111,7 +185,14 @@ class CartItemInline(admin.TabularInline):
     readonly_fields = ['created_at', 'stock_display']
     fields = ['variation', 'quantity', 'stock_display', 'created_at']
 
-    def stock_display(self, obj):
+    def stock_display(self, obj: CartItem) -> Any:
+        """
+        Возвращает доступный запас для CartItem.
+        Args:
+            obj: CartItem
+        Returns:
+            int или строка
+        """
         return obj.variation.stock if obj.variation else "Н/Д"
     stock_display.short_description = "Доступный запас"
 
@@ -143,7 +224,14 @@ class CategoryAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('name',)}
 
     @admin.display(description='Родительская категория')
-    def parent_name(self, obj):
+    def parent_name(self, obj: Category) -> str:
+        """
+        Возвращает имя родительской категории.
+        Args:
+            obj: Category
+        Returns:
+            str: имя родителя или '-'
+        """
         return obj.parent.name if obj.parent else '-'
 
 @admin.register(Banner)
@@ -160,7 +248,14 @@ class BannerAdmin(admin.ModelAdmin):
         ('Мета', {'fields': ('created_at',)}),
     )
 
-    def image_preview(self, obj):
+    def image_preview(self, obj: Banner) -> str:
+        """
+        Возвращает превью изображения баннера.
+        Args:
+            obj: Banner
+        Returns:
+            str: HTML превью или 'Нет изображения'
+        """
         if obj.image:
             return format_html('<img src="{}" style="max-height: 50px;"/>', obj.image.url)
         return "Нет изображения"
@@ -183,10 +278,26 @@ class ProductAdmin(admin.ModelAdmin):
         ('Мета', {'fields': ('created_at', 'total_price')}),
     )
 
-    def save_model(self, request, obj, form, change):
+    def save_model(self, request: Any, obj: Product, form: Any, change: bool) -> None:
+        """
+        Сохраняет продукт из админки.
+        Args:
+            request: объект запроса
+            obj: продукт
+            form: форма
+            change: изменяется ли существующий объект
+        """
         obj.save()
 
-    def save_related(self, request, form, formsets, change):
+    def save_related(self, request: Any, form: Any, formsets: Any, change: bool) -> None:
+        """
+        Сохраняет связанные объекты продукта (вариации, категории, изображения).
+        Args:
+            request: объект запроса
+            form: форма
+            formsets: связанные формы
+            change: изменяется ли существующий объект
+        """
         product = form.instance
         try:
             for formset in formsets:
@@ -209,13 +320,27 @@ class ProductAdmin(admin.ModelAdmin):
         except ValidationError as e:
             self.message_user(request, f'Ошибка сохранения: {str(e)}', level='ERROR')
 
-    def image_preview(self, obj):
+    def image_preview(self, obj: Product) -> str:
+        """
+        Возвращает превью изображения продукта.
+        Args:
+            obj: Product
+        Returns:
+            str: HTML превью или '-'
+        """
         if obj.image:
             return format_html('<img src="{}" style="max-height: 50px;" />', obj.image.url)
         return "-"
     image_preview.short_description = "Превью"
 
-    def get_categories(self, obj):
+    def get_categories(self, obj: Product) -> str:
+        """
+        Возвращает строку с названиями категорий продукта.
+        Args:
+            obj: Product
+        Returns:
+            str: строка категорий
+        """
         return ", ".join([category.name for category in obj.categories.all()])
     get_categories.short_description = 'Категории'
 
@@ -230,15 +355,36 @@ class ProductVariationAdmin(admin.ModelAdmin):
     raw_id_fields = ['product']
     fields = ['product', 'size', 'color', 'available_stock', 'reserved_quantity', 'sold_quantity', 'stock', 'created_at']
 
-    def product_name(self, obj):
+    def product_name(self, obj: ProductVariation) -> str:
+        """
+        Возвращает имя продукта вариации.
+        Args:
+            obj: ProductVariation
+        Returns:
+            str: имя продукта
+        """
         return obj.product.name
     product_name.short_description = 'Продукт'
 
-    def get_stock(self, obj):
+    def get_stock(self, obj: ProductVariation) -> int:
+        """
+        Возвращает доступный запас вариации.
+        Args:
+            obj: ProductVariation
+        Returns:
+            int: запас
+        """
         return obj.stock
     get_stock.short_description = 'Доступный запас'
 
-    def color_preview(self, obj):
+    def color_preview(self, obj: ProductVariation) -> str:
+        """
+        Возвращает превью цвета вариации.
+        Args:
+            obj: ProductVariation
+        Returns:
+            str: HTML превью
+        """
         if obj.color:
             return format_html(
                 '<div style="width: 30px; height: 30px; background-color: {}; border: 1px solid #000;"></div>',
@@ -261,32 +407,68 @@ class OrderAdmin(admin.ModelAdmin):
     actions = ['generate_invoice_pdf']
 
     @admin.display(description='Пользователь')
-    def user_username(self, obj):
+    def user_username(self, obj: Order) -> str:
+        """
+        Возвращает имя пользователя заказа.
+        Args:
+            obj: Order
+        Returns:
+            str: имя пользователя или сообщение
+        """
         if not obj.pk:
             return "Не рассчитано (сохраните заказ)"
         return obj.user.username
 
     @admin.display(description='Цена без скидки')
-    def get_original_price(self, obj):
+    def get_original_price(self, obj: Order) -> Any:
+        """
+        Возвращает цену без скидки заказа.
+        Args:
+            obj: Order
+        Returns:
+            цена или сообщение
+        """
         if not obj.pk:
             return "Не рассчитано (сохраните заказ)"
         return obj.original_price
 
     @admin.display(description='Итоговая цена')
-    def get_total_price(self, obj):
+    def get_total_price(self, obj: Order) -> Any:
+        """
+        Возвращает итоговую цену заказа.
+        Args:
+            obj: Order
+        Returns:
+            цена или сообщение
+        """
         if not obj.pk:
             return "Не рассчитано (сохраните заказ)"
         return obj.total_price
 
     @admin.display(description='Валидная сумма')
-    def is_valid_amount(self, obj):
+    def is_valid_amount(self, obj: Order) -> str:
+        """
+        Проверяет, валидна ли сумма заказа.
+        Args:
+            obj: Order
+        Returns:
+            str: 'Да' или 'Нет'
+        """
         if not obj.pk:
             return "Не рассчитано (сохраните заказ)"
         return "Да" if 500 <= obj.total_price <= 100000 else "Нет"
     is_valid_amount.short_description = 'Валидная сумма'
 
     @admin.action(description='Сгенерировать PDF-счет для выбранных заказов')
-    def generate_invoice_pdf(self, request, queryset):
+    def generate_invoice_pdf(self, request: Any, queryset: Any) -> HttpResponse:
+        """
+        Генерирует PDF-счёт для выбранных заказов.
+        Args:
+            request: объект запроса
+            queryset: QuerySet заказов
+        Returns:
+            HttpResponse: PDF-файл
+        """
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = 'attachment; filename="invoices.pdf"'
         doc = SimpleDocTemplate(response, pagesize=letter)
@@ -357,15 +539,36 @@ class ReviewAdmin(admin.ModelAdmin):
     fields = ['product', 'user', 'rating', 'comment', 'created_at', 'updated_at']
 
     @admin.display(description='Продукт')
-    def product_name(self, obj):
+    def product_name(self, obj: Review) -> str:
+        """
+        Возвращает имя продукта для отзыва.
+        Args:
+            obj: Review
+        Returns:
+            str: имя продукта
+        """
         return obj.product.name
 
     @admin.display(description='Пользователь')
-    def user_username(self, obj):
+    def user_username(self, obj: Review) -> str:
+        """
+        Возвращает имя пользователя для отзыва.
+        Args:
+            obj: Review
+        Returns:
+            str: имя пользователя
+        """
         return obj.user.username
     
     @admin.display(description='Покупал товар')
-    def has_purchased(self, obj):
+    def has_purchased(self, obj: Review) -> str:
+        """
+        Проверяет, покупал ли пользователь товар.
+        Args:
+            obj: Review
+        Returns:
+            str: 'Да' или 'Нет'
+        """
         return "Да" if Order.objects.filter(
             user=obj.user,
             status='delivered',
@@ -374,7 +577,13 @@ class ReviewAdmin(admin.ModelAdmin):
     has_purchased.short_description = 'Покупал товар'
 
     @admin.action(description='Проверить валидность отзывов')
-    def check_purchase_validity(self, request, queryset):
+    def check_purchase_validity(self, request: Any, queryset: Any) -> None:
+        """
+        Проверяет валидность отзывов (покупал ли пользователь товар).
+        Args:
+            request: объект запроса
+            queryset: QuerySet отзывов
+        """
         invalid_reviews = []
         for review in queryset:
             has_purchased = Order.objects.filter(
@@ -408,11 +617,25 @@ class CartAdmin(admin.ModelAdmin):
     inlines = [CartItemInline]
 
     @admin.display(description='Пользователь')
-    def user_username(self, obj):
+    def user_username(self, obj: Cart) -> str:
+        """
+        Возвращает имя пользователя корзины.
+        Args:
+            obj: Cart
+        Returns:
+            str: имя пользователя или 'Аноним'
+        """
         return obj.user.username if obj.user else "Аноним"
 
     @admin.display(description='Количество товаров')
-    def item_count(self, obj):
+    def item_count(self, obj: Cart) -> int:
+        """
+        Возвращает количество товаров в корзине.
+        Args:
+            obj: Cart
+        Returns:
+            int: количество товаров
+        """
         return obj.items.count()
     item_count.short_description = 'Количество товаров'
 
@@ -426,11 +649,25 @@ class CartItemAdmin(admin.ModelAdmin):
     raw_id_fields = ['cart', 'variation']
 
     @admin.display(description='Пользователь')
-    def cart_user(self, obj):
+    def cart_user(self, obj: CartItem) -> str:
+        """
+        Возвращает имя пользователя корзины или сессию.
+        Args:
+            obj: CartItem
+        Returns:
+            str: имя пользователя или сессия
+        """
         return obj.cart.user.username if obj.cart.user else f"Сессия {obj.cart.session_key or 'без ключа'}"
     cart_user.short_description = 'Пользователь'
 
     @admin.display(description='Доступный запас')
-    def stock_display(self, obj):
+    def stock_display(self, obj: CartItem) -> Any:
+        """
+        Возвращает доступный запас для CartItem.
+        Args:
+            obj: CartItem
+        Returns:
+            int или строка
+        """
         return obj.variation.stock if obj.variation else "Н/Д"
     stock_display.short_description = 'Доступный запас'
