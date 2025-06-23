@@ -179,7 +179,10 @@ export const register = (username, email, password, address, phone_number) =>
     .post("register/", { username, email, password, address, phone_number })
     .then((res) => res.data);
 export const logout = (refreshToken) =>
-  api.post("logout/", { refresh: refreshToken }).then((res) => res.data);
+  api.post("logout/", { refresh: refreshToken }).then((res) => {
+    removeTokens()
+    return res.data
+  });
 
 export const addReview = (productId, reviewData) =>
   api

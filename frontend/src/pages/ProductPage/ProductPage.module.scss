@@ -280,7 +280,8 @@
         height: 30px;
         cursor: pointer;
         border-radius: 8px;
-        border: 2px solid transparent;
+        border: 1px solid transparent;
+        border-color: $black;
         transition: all 0.3s ease;
     }
 

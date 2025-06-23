@@ -1,4 +1,5 @@
 from django.db import transaction, IntegrityError
+import random
 from django.forms import ValidationError
 from django.contrib.sessions.models import Session
 from django.shortcuts import get_object_or_404
@@ -25,6 +26,32 @@ from .serializers import (
     ProductVariationSerializer, CategorySerializer, UserSerializer
 )
 from typing import Any
+
+def test_sentry(request: Any) -> Any:
+    """
+    Тестовый view для проверки интеграции Sentry. Генерирует разные типы ошибок в зависимости от query-параметра 'type'.
+    Args:
+        request: объект запроса
+    Returns:
+        Response: успешный ответ или исключение
+    Raises:
+        Exception: если type=exception
+        ZeroDivisionError: если type=zero
+        ValueError: если type=value
+    """
+    error_type = request.GET.get('type', 'exception')
+    if error_type == 'zero':
+        1 / 0  
+    elif error_type == 'value':
+        raise ValueError("Test Sentry ValueError!")
+    elif error_type == 'key':
+        d = {}
+        return d['missing']  
+    else:
+        raise Exception("Test Sentry generic exception!")
+    from django.http import JsonResponse
+    return JsonResponse({'status': 'ok'})
+
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -73,7 +100,11 @@ class RandomRecommendedProductsView(views.APIView):
         Returns:
             Response: список продуктов
         """
-        recommended_products = Product.objects.filter(is_recommended=True).exclude(is_active=False).order_by('?')[:6]
+        ids = list(Product.objects.filter(is_recommended=True, is_active=True).values_list('id', flat=True))
+        if len(ids) > 6:
+            ids = random.sample(ids, 6)
+        recommended_products = Product.objects.filter(id__in=ids)\
+            .prefetch_related('categories', 'reviews', 'variations', 'color_images')
         serializer = ProductSerializer(recommended_products, many=True, context={'request': request})
         return Response(serializer.data)
 
@@ -89,7 +120,7 @@ class UserOrdersViewSet(APIView):
         Returns:
             Response: список заказов
         """
-        orders = Order.objects.filter(user=request.user).order_by('-order_date')
+        orders = Order.objects.filter(user=request.user).select_related('user').prefetch_related('items__variation__product').order_by('-order_date')
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
 
@@ -108,11 +139,12 @@ class CategoryProductsViewSet(viewsets.ReadOnlyModelViewSet):
         gender = self.request.query_params.get('gender', 'male')
         category = get_object_or_404(Category, slug=category_slug, gender=gender)
         descendant_ids = category.get_descendants_ids()
-        return Product.active_objects.filter(categories__id__in=descendant_ids).distinct()
+        return Product.active_objects.filter(categories__id__in=descendant_ids)\
+            .prefetch_related('categories', 'reviews', 'variations', 'color_images').distinct()
 
 
 class ProductListViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Product.active_objects.all()
+    queryset = Product.active_objects.all().prefetch_related('categories', 'reviews', 'variations', 'color_images')
     serializer_class = ProductSerializer
     filter_backends = [SearchFilter, DjangoFilterBackend]
     search_fields = ['name']
@@ -207,7 +239,7 @@ class CartViewSet(viewsets.ViewSet):
         Returns:
             Cart: корзина пользователя
         """
-        cart, _ = Cart.objects.get_or_create(user=request.user)
+        cart, _ = Cart.objects.prefetch_related('items__variation__product').get_or_create(user=request.user)
         return cart
 
     def list(self, request: Any) -> Response:
@@ -353,7 +385,7 @@ class FavoriteViewSet(viewsets.ModelViewSet):
         Returns:
             QuerySet: избранное
         """
-        return Favorite.objects.filter(user=self.request.user).select_related('product')
+        return Favorite.objects.filter(user=self.request.user).select_related('product', 'user')
     
     def perform_create(self, serializer: Any) -> None:
         """
@@ -391,7 +423,7 @@ class RandomReviewsView(views.APIView):
     
 
 class ProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.all()
+    queryset = Product.objects.all().prefetch_related('categories', 'reviews', 'variations', 'color_images')
     serializer_class = ProductSerializer
     permission_classes = [IsAdminUser]
 
@@ -440,12 +472,12 @@ class CategoryListView(APIView):
             Response: категории
         """
         gender = request.query_params.get('gender', 'male')
-        categories = Category.objects.filter(gender=gender).order_by('name')
+        categories = Category.objects.filter(gender=gender).order_by('name').prefetch_related('subcategories')
         serializer = CategorySerializer(categories, many=True)
         return Response(serializer.data)
     
 class AdminOrderViewSet(viewsets.ModelViewSet):
-    queryset = Order.objects.all().select_related('user').prefetch_related('items')
+    queryset = Order.objects.all().select_related('user').prefetch_related('items__variation__product')
     serializer_class = OrderSerializer
     permission_classes = [IsAdminUser]
 

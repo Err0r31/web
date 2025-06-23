@@ -6,7 +6,7 @@ from .views import (
     BannerViewSet, UserOrdersViewSet, CategoryProductsViewSet,
     ProductListViewSet, ReviewViewSet, CartViewSet, FavoriteViewSet,
     ProductVariationViewSet, RandomReviewsView, ProductViewSet, CategoryListView,
-    AdminOrderViewSet, UserManagementViewSet, UserProfileView, CreateOrderView
+    AdminOrderViewSet, UserManagementViewSet, UserProfileView, CreateOrderView, test_sentry
 )
 
 router = DefaultRouter()
@@ -36,5 +36,6 @@ urlpatterns = [
     path('api/profile/', UserProfileView.as_view(), name='user-profile'),
     path('api/create-order/', CreateOrderView.as_view(), name='create-order'),
     path('api/user/orders/', UserOrdersViewSet.as_view(), name='user-orders'),
+    path('api/test-sentry/', test_sentry),
     path('api/', include(router.urls)),
 ]
