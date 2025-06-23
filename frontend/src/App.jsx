@@ -15,6 +15,7 @@ import AdminUserPage from "./pages/Admin/AdminUserPage/AdminUserPage";
 import CategoryPage from "./pages/CategoryPage/CategoryPage";
 import ProfilePage from "./pages/ProfilePage/ProfilePage";
 import CheckoutPage from "./pages/CheckoutPage/CheckoutPage";
+import Exam from "./pages/Exam/Exam";
 
 function App() {
   return (
@@ -36,6 +37,9 @@ function App() {
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/admin/orders" element={<AdminOrderPage />} />
               <Route path="/admin/users" element={<AdminUserPage />} />
+
+              <Route path="/exam" element={<Exam />} />
+
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Router>

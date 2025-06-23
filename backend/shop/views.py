@@ -18,12 +18,12 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import ProductFilter
 from .models import (
-    Banner, Product, User, Order, Category, Review, Cart, CartItem, Favorite, ProductVariation
+    Banner, Product, User, Order, Category, Review, Cart, CartItem, Favorite, ProductVariation, EDexam
 )
 from .serializers import (
     BannerSerializer, ProductSerializer, OrderSerializer, RegisterSerializer,
     ReviewSerializer, CartSerializer, CartItemSerializer, FavoriteSerializer,
-    ProductVariationSerializer, CategorySerializer, UserSerializer
+    ProductVariationSerializer, CategorySerializer, UserSerializer, EDExamSerializer
 )
 from typing import Any
 
@@ -613,3 +613,10 @@ class CreateOrderView(APIView):
                 cart.items.all().delete()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class EDExamListView(APIView):
+    def get(self, request):
+        exams = EDexam.objects.filter(is_public=True)
+        serializer = EDExamSerializer(exams, many=True)
+        return Response(serializer.data)

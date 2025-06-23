@@ -1,0 +1,61 @@
+.exam {
+  padding: 2rem 0;
+  background-color: #f9f9f9;
+  min-height: 100vh;
+
+  &__content {
+    background-color: #fff;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  &__header {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 1.5rem;
+    color: #333;
+  }
+
+  &__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  &__item {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1.2rem;
+    margin-bottom: 1.5rem;
+    background-color: #fafafa;
+
+    &:hover {
+      background-color: #f0f0f0;
+    }
+  }
+
+  &__title {
+    font-size: 1.4rem;
+    margin-bottom: 0.8rem;
+    color: #222;
+  }
+
+  &__field {
+    font-size: 1rem;
+    margin: 0.4rem 0;
+    color: #555;
+  }
+
+  &__imageContainer {
+    margin: 1rem 0;
+
+    img {
+      max-width: 100%;
+      width: 400px;
+      height: auto;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+  }
+}

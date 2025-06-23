@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Banner, Product, Order, Category, User, Review, ProductVariation, ProductColorImage, OrderItem, CartItem, Cart, Favorite
+from .models import Banner, Product, Order, Category, User, Review, ProductVariation, ProductColorImage, OrderItem, CartItem, Cart, Favorite, EDexam
 import re
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from typing import Any, Optional
@@ -490,3 +490,12 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta: 
         model = User
         fields = ['id', 'username', 'full_name', 'email', 'address', 'phone_number', 'is_active', 'is_staff']
+
+
+class EDExamSerializer(serializers.ModelSerializer):
+    users = UserSerializer(many=True)
+    image = serializers.ImageField(use_url=True, allow_null=True)
+
+    class Meta:
+        model = EDexam
+        fields = ['title', 'created_at', 'exam_date', 'image', 'users', 'is_public']
