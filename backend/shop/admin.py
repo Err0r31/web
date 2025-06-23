@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Category, Banner, Product, ProductVariation, Order, OrderItem, Review, ProductCategory, ProductColorImage, CartItem, Cart
+from .models import User, Category, Banner, Product, ProductVariation, Order, OrderItem, Review, ProductCategory, ProductColorImage, CartItem, Cart, EDexam
 from django.http import HttpResponse
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
@@ -671,3 +671,11 @@ class CartItemAdmin(admin.ModelAdmin):
         """
         return obj.variation.stock if obj.variation else "Н/Д"
     stock_display.short_description = 'Доступный запас'
+
+@admin.register(EDexam)
+class EDExamAdmin(admin.ModelAdmin):
+    list_display = ('title', 'exam_date', 'is_public', 'created_at')
+    search_fields = ('title', 'users__email')
+    list_filter = ('is_public', 'created_at')
+    filter_horizontal = ('users',)
+    date_hierarchy = 'exam_date'
