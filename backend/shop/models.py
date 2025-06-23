@@ -602,3 +602,19 @@ class Favorite(models.Model):
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
         unique_together = ('user', 'product')
+
+
+class EDexam(models.Model):
+    title = models.CharField(max_length=100, verbose_name='Название экзамена')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+    exam_date = models.DateField(verbose_name='Дата проведения экзамена')
+    image = models.ImageField(upload_to='exams/', null=True, blank=True, verbose_name='Изображение задания')
+    users = models.ManyToManyField(User, related_name='EDexam', verbose_name='Пользователи')
+    is_public = models.BooleanField(default=False, verbose_name='Опубликовано')
+
+    def __str__(self):
+        return self.title
+    
+    class Meta: 
+        verbose_name = 'Экзамен EД'
+        verbose_name_plural = 'Экзамены EД'
