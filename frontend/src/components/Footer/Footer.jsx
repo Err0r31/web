@@ -49,20 +49,26 @@ export default function Footer() {
                 <Link
                   className={styles.footer__link}
                   to="/"
+                  aria-label="Наш Telegram"
                 >
                   <FaTelegram />
+                  <span className="sr-only">Telegram</span>
                 </Link>
                 <Link
                   className={styles.footer__link}
                   to="/"
+                  aria-label="Наш WhatsApp"
                 >
                   <FaWhatsappSquare />
+                  <span className="sr-only">Whatsapp</span>
                 </Link>
                 <Link
                   className={styles.footer__link}
                   to="/"
+                  aria-label="Наша группа ВКонтакте"
                 >
                   <FaVk />
+                  <span className="sr-only">Vk</span>
                 </Link>
               </li>
             </ul>

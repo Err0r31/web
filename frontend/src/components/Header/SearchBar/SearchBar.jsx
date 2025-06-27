@@ -73,6 +73,7 @@ export default function SearchBar() {
         aria-expanded={isSearchExpanded}
         aria-controls="search-results"
         aria-describedby={searchError ? "search-error" : undefined}
+        role="combobox"
       />
       {isLoading && (
         <div className={styles.header__searchLoading} aria-live="polite">
