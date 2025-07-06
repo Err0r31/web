@@ -13,7 +13,7 @@ export default function CheckoutForm() {
     phone_number: "",
     payment_method: "card",
   });
-  const [cart, setCart] = useState({ items: [], total_price: 0 }); 
+  const [cart, setCart] = useState({ items: [], total_price: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -146,7 +146,7 @@ export default function CheckoutForm() {
                 onChange={handleInputChange}
               />
               СБП
-  </label>
+            </label>
             <label className={styles.checkout__radio}>
               <input
                 type="radio"

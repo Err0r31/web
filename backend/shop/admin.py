@@ -615,6 +615,7 @@ class CartAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at']
     date_hierarchy = 'created_at'
     inlines = [CartItemInline]
+    raw_id_fields = ['user']
 
     @admin.display(description='Пользователь')
     def user_username(self, obj: Cart) -> str:
